@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/felixjung/trees/runner"
+	"github.com/felixjung/trees/internal/runner"
 )
 
 func main() {
