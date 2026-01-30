@@ -12,6 +12,7 @@ import (
 
 type appAPI interface {
 	Add(ctx context.Context, projectName, branch string) error
+	Init(ctx context.Context) error
 	Remove(ctx context.Context, projectName, branch string) error
 }
 
