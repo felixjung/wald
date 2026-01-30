@@ -4,78 +4,82 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
 // Runner executes commands for worktree operations.
 type Runner interface {
-	Run(ctx context.Context, dir string, name string, args ...string) error
+	Run(ctx context.Context, dir, name string, args ...string) error
 }
 
-// OSRunner runs commands via os/exec.
-type OSRunner struct {
-	Stdout io.Writer
-	Stderr io.Writer
-}
-
-func (r OSRunner) Run(ctx context.Context, dir, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Dir = dir
-	if r.Stdout != nil {
-		cmd.Stdout = r.Stdout
+// Add creates a worktree for the given branch name, branching from baseBranch.
+// If branch is omitted, baseBranch is treated as the branch name and "main" is used as the base branch.
+func Add(ctx context.Context, r Runner, repoRoot, baseBranch string, branch ...string) error {
+	branchName := stringsTrim(baseBranch)
+	if len(branch) > 0 {
+		branchName = stringsTrim(branch[0])
 	}
-	if r.Stderr != nil {
-		cmd.Stderr = r.Stderr
-	}
-	return cmd.Run()
-}
-
-// Add creates a worktree for the given branch name, branching from main.
-func Add(ctx context.Context, r Runner, repoRoot, branch string) error {
-	if stringsTrim(branch) == "" {
+	if branchName == "" {
 		return errors.New("branch name is required")
 	}
-	if branch == "main" {
-		return errors.New("branch name 'main' is reserved")
+	if len(branch) == 0 {
+		baseBranch = "main"
+	}
+	baseBranch = stringsTrim(baseBranch)
+	if baseBranch == "" {
+		return errors.New("default branch is required")
+	}
+	if branchName == baseBranch {
+		return fmt.Errorf("branch name %q is reserved", baseBranch)
 	}
 	if err := validateRepoRoot(repoRoot); err != nil {
 		return err
 	}
 
-	mainPath := filepath.Join(repoRoot, "main")
-	if !pathExists(mainPath) {
-		if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-B", "main", mainPath, "main"); err != nil {
-			return fmt.Errorf("ensure main worktree: %w", err)
+	basePath := filepath.Join(repoRoot, baseBranch)
+	if !pathExists(basePath) {
+		if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-B", baseBranch, basePath, baseBranch); err != nil {
+			return fmt.Errorf("ensure default branch worktree: %w", err)
 		}
 	}
 
-	branchPath := filepath.Join(repoRoot, branch)
+	branchPath := filepath.Join(repoRoot, branchName)
 	if pathExists(branchPath) {
 		return fmt.Errorf("worktree path already exists: %s", branchPath)
 	}
-	if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-b", branch, branchPath, "main"); err != nil {
+	if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-b", branchName, branchPath, baseBranch); err != nil {
 		return fmt.Errorf("add worktree: %w", err)
 	}
 	return nil
 }
 
 // Remove deletes a worktree for the given branch name.
-func Remove(ctx context.Context, r Runner, repoRoot, branch string) error {
-	if stringsTrim(branch) == "" {
+// If branch is omitted, baseBranch is treated as the branch name and "main" is used as the base branch.
+func Remove(ctx context.Context, r Runner, repoRoot, baseBranch string, branch ...string) error {
+	branchName := stringsTrim(baseBranch)
+	if len(branch) > 0 {
+		branchName = stringsTrim(branch[0])
+	}
+	if branchName == "" {
 		return errors.New("branch name is required")
 	}
-	if branch == "main" {
-		return errors.New("cannot remove the main worktree")
+	if len(branch) == 0 {
+		baseBranch = "main"
+	}
+	baseBranch = stringsTrim(baseBranch)
+	if baseBranch == "" {
+		return errors.New("default branch is required")
+	}
+	if branchName == baseBranch {
+		return fmt.Errorf("cannot remove the default branch worktree %q", baseBranch)
 	}
 	if err := validateRepoRoot(repoRoot); err != nil {
 		return err
 	}
 
-	branchPath := filepath.Join(repoRoot, branch)
+	branchPath := filepath.Join(repoRoot, branchName)
 	if !pathExists(branchPath) {
 		return fmt.Errorf("worktree path does not exist: %s", branchPath)
 	}
