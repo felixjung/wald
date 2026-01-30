@@ -9,92 +9,134 @@ import (
 	"strings"
 
 	altsrc "github.com/urfave/cli-altsrc/v3"
-	altsrcyaml "github.com/urfave/cli-altsrc/v3/yaml"
+	"gopkg.in/yaml.v3"
 )
+
+const (
+	defaultWorkdir       = "."
+	defaultDefaultBranch = "main"
+)
+
+// Config defines the trees configuration file schema.
+type Config struct {
+	WorktreeRoot string    `yaml:"worktree_root"`
+	Projects     []Project `yaml:"projects"`
+}
 
 // Project describes a configured project.
 type Project struct {
-	// Repo is a local path (absolute or relative to Root) or a repo identifier
-	// like github.com/owner/name.
-	Repo string
-	// Workdir is an optional subfolder within a worktree for mono repos.
-	Workdir string
+	Name          string `yaml:"name"`
+	Repo          string `yaml:"repo"`
+	Workdir       string `yaml:"workdir"`
+	DefaultBranch string `yaml:"default_branch"`
 }
 
-// ProjectConfig contains config data for a single project.
-type ProjectConfig struct {
-	Root        string
-	ProjectName string
-	Project     Project
-}
-
-// LoadProject reads config and returns the requested project configuration.
-func LoadProject(projectName string) (*ProjectConfig, string, error) {
+// Load reads the config from disk and validates it.
+func Load() (*Config, string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, "", fmt.Errorf("resolve home dir: %w", err)
 	}
-	path, err := ResolvePath(os.Getenv, homeDir, fileExists)
+	path, err := resolvePath(os.Getenv, homeDir, fileExists)
 	if err != nil {
 		return nil, "", err
 	}
-	cfg, err := loadProjectFromPath(path, homeDir, projectName)
+	cfg, err := loadFromPath(path, homeDir)
 	if err != nil {
 		return nil, "", err
 	}
 	return cfg, path, nil
 }
 
-func loadProjectFromPath(path, homeDir, projectName string) (*ProjectConfig, error) {
-	if strings.TrimSpace(projectName) == "" {
-		return nil, errors.New("project name is required")
+// FindProject finds a project by name.
+func (c *Config) FindProject(name string) (Project, bool) {
+	for _, project := range c.Projects {
+		if project.Name == name {
+			return project, true
+		}
 	}
+	return Project{}, false
+}
+
+// RepoPath resolves the repository root directory on disk.
+func RepoPath(root, repo string) string {
+	if repo == "" {
+		return ""
+	}
+	if filepath.IsAbs(repo) || strings.HasPrefix(repo, ".") {
+		if filepath.IsAbs(repo) {
+			return filepath.Clean(repo)
+		}
+		return filepath.Clean(filepath.Join(root, repo))
+	}
+	base := repoDirName(repo)
+	return filepath.Join(root, base)
+}
+
+func (c *Config) validate() error {
+	if strings.TrimSpace(c.WorktreeRoot) == "" {
+		return errors.New("config worktree_root is required")
+	}
+	if len(c.Projects) == 0 {
+		return errors.New("config projects is required")
+	}
+	for _, project := range c.Projects {
+		if project.Name == "" {
+			return errors.New("project name is required")
+		}
+		if project.Repo == "" {
+			return fmt.Errorf("project %q repo is required", project.Name)
+		}
+		if filepath.IsAbs(project.Workdir) {
+			return fmt.Errorf("project %q workdir must be relative", project.Name)
+		}
+		if project.DefaultBranch == "" {
+			return fmt.Errorf("project %q default_branch is required", project.Name)
+		}
+	}
+	return nil
+}
+
+func loadFromPath(path, homeDir string) (*Config, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, errors.New("config path is required")
 	}
-	source := altsrc.StringSourcer(path)
-
-	root, ok := lookupString(source, "root")
-	if !ok || root == "" {
-		return nil, errors.New("config root is required")
-	}
-	root, err := NormalizeRoot(root, homeDir)
-	if err != nil {
+	cache := altsrc.NewURISourceCache[Config](path, yaml.Unmarshal)
+	cfg := cache.Get()
+	if err := cfg.normalize(homeDir); err != nil {
 		return nil, err
 	}
-
-	repoKey := fmt.Sprintf("projects.%s.repo", projectName)
-	repo, ok := lookupString(source, repoKey)
-	if !ok || repo == "" {
-		return nil, fmt.Errorf("project %q repo is required", projectName)
+	if err := cfg.validate(); err != nil {
+		return nil, err
 	}
-
-	workdirKey := fmt.Sprintf("projects.%s.workdir", projectName)
-	workdir, _ := lookupString(source, workdirKey)
-	if filepath.IsAbs(workdir) {
-		return nil, fmt.Errorf("project %q workdir must be relative", projectName)
-	}
-
-	return &ProjectConfig{
-		Root:        root,
-		ProjectName: projectName,
-		Project: Project{
-			Repo:    repo,
-			Workdir: workdir,
-		},
-	}, nil
+	return &cfg, nil
 }
 
-func lookupString(source altsrc.Sourcer, key string) (string, bool) {
-	value, ok := altsrcyaml.YAML(key, source).Lookup()
-	if !ok {
-		return "", false
+// normalize applies defaults and expands ~ in WorktreeRoot.
+func (c *Config) normalize(homeDir string) error {
+	root, err := normalizeRoot(c.WorktreeRoot, homeDir)
+	if err != nil {
+		return err
 	}
-	return strings.TrimSpace(value), true
+	c.WorktreeRoot = root
+	for i := range c.Projects {
+		project := &c.Projects[i]
+		project.Name = strings.TrimSpace(project.Name)
+		project.Repo = strings.TrimSpace(project.Repo)
+		project.Workdir = strings.TrimSpace(project.Workdir)
+		project.DefaultBranch = strings.TrimSpace(project.DefaultBranch)
+		if project.Workdir == "" {
+			project.Workdir = defaultWorkdir
+		}
+		if project.DefaultBranch == "" {
+			project.DefaultBranch = defaultDefaultBranch
+		}
+	}
+	return nil
 }
 
-// ResolvePath picks the config file path based on XDG or ~/.trees.yaml.
-func ResolvePath(getenv func(string) string, homeDir string, exists func(string) bool) (string, error) {
+// resolvePath picks the config file path based on XDG or ~/.trees.yaml.
+func resolvePath(getenv func(string) string, homeDir string, exists func(string) bool) (string, error) {
 	xdg := getenv("XDG_CONFIG_HOME")
 	if xdg == "" {
 		xdg = filepath.Join(homeDir, ".config")
@@ -111,11 +153,11 @@ func ResolvePath(getenv func(string) string, homeDir string, exists func(string)
 	return "", fmt.Errorf("config not found; create %s or %s", xdgPath, dotPath)
 }
 
-// NormalizeRoot expands ~ in root and cleans it.
-func NormalizeRoot(root, homeDir string) (string, error) {
+// normalizeRoot expands ~ in root and cleans it.
+func normalizeRoot(root, homeDir string) (string, error) {
 	root = strings.TrimSpace(root)
 	if root == "" {
-		return "", errors.New("root is required")
+		return "", errors.New("config worktree_root is required")
 	}
 	if strings.HasPrefix(root, "~") {
 		if homeDir == "" {
@@ -126,23 +168,8 @@ func NormalizeRoot(root, homeDir string) (string, error) {
 	return filepath.Clean(root), nil
 }
 
-// RepoPath resolves the repository root directory on disk.
-func RepoPath(root, repo string) string {
-	if repo == "" {
-		return ""
-	}
-	if filepath.IsAbs(repo) || strings.HasPrefix(repo, ".") {
-		if filepath.IsAbs(repo) {
-			return filepath.Clean(repo)
-		}
-		return filepath.Clean(filepath.Join(root, repo))
-	}
-	base := RepoDirName(repo)
-	return filepath.Join(root, base)
-}
-
-// RepoDirName derives a folder name from a repo identifier.
-func RepoDirName(repo string) string {
+// repoDirName derives a folder name from a repo identifier.
+func repoDirName(repo string) string {
 	repo = strings.TrimRight(repo, "/")
 	repo = strings.TrimSuffix(repo, ".git")
 	if repo == "" {

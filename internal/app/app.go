@@ -10,11 +10,12 @@ import (
 
 	"github.com/felixjung/trees/internal/config"
 	"github.com/felixjung/trees/internal/worktree"
+	"github.com/felixjung/trees/runner"
 )
 
 // Deps wires dependencies for the CLI app.
 type Deps struct {
-	ConfigLoader func(projectName string) (*config.ProjectConfig, string, error)
+	ConfigLoader func() (*config.Config, string, error)
 	Runner       worktree.Runner
 	Stdout       io.Writer
 }
@@ -22,13 +23,13 @@ type Deps struct {
 // New constructs the CLI application.
 func New(deps Deps) *cli.Command {
 	if deps.ConfigLoader == nil {
-		deps.ConfigLoader = config.LoadProject
+		deps.ConfigLoader = config.Load
 	}
 	if deps.Stdout == nil {
 		deps.Stdout = os.Stdout
 	}
 	if deps.Runner == nil {
-		deps.Runner = worktree.OSRunner{Stdout: os.Stdout, Stderr: os.Stderr}
+		deps.Runner = runner.OSRunner{Stdout: os.Stdout, Stderr: os.Stderr}
 	}
 
 	return &cli.Command{
@@ -62,29 +63,37 @@ func New(deps Deps) *cli.Command {
 }
 
 func runAdd(ctx context.Context, deps Deps, projectName, branch string) error {
-	cfg, _, err := deps.ConfigLoader(projectName)
+	cfg, _, err := deps.ConfigLoader()
 	if err != nil {
 		return err
 	}
-	repoRoot := config.RepoPath(cfg.Root, cfg.Project.Repo)
-	if err = worktree.Add(ctx, deps.Runner, repoRoot, branch); err != nil {
+	project, ok := cfg.FindProject(projectName)
+	if !ok {
+		return fmt.Errorf("project %q not found", projectName)
+	}
+	repoRoot := config.RepoPath(cfg.WorktreeRoot, project.Repo)
+	if err = worktree.Add(ctx, deps.Runner, repoRoot, project.DefaultBranch, branch); err != nil {
 		return err
 	}
-	path := worktree.WorkdirPath(repoRoot, branch, cfg.Project.Workdir)
+	path := worktree.WorkdirPath(repoRoot, branch, project.Workdir)
 	_, err = fmt.Fprintln(deps.Stdout, path)
 	return err
 }
 
 func runRemove(ctx context.Context, deps Deps, projectName, branch string) error {
-	cfg, _, err := deps.ConfigLoader(projectName)
+	cfg, _, err := deps.ConfigLoader()
 	if err != nil {
 		return err
 	}
-	repoRoot := config.RepoPath(cfg.Root, cfg.Project.Repo)
-	if err = worktree.Remove(ctx, deps.Runner, repoRoot, branch); err != nil {
+	project, ok := cfg.FindProject(projectName)
+	if !ok {
+		return fmt.Errorf("project %q not found", projectName)
+	}
+	repoRoot := config.RepoPath(cfg.WorktreeRoot, project.Repo)
+	if err = worktree.Remove(ctx, deps.Runner, repoRoot, project.DefaultBranch, branch); err != nil {
 		return err
 	}
-	path := worktree.WorkdirPath(repoRoot, branch, cfg.Project.Workdir)
+	path := worktree.WorkdirPath(repoRoot, branch, project.Workdir)
 	_, err = fmt.Fprintln(deps.Stdout, path)
 	return err
 }

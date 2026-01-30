@@ -25,22 +25,22 @@ func (f *fakeRunner) Run(_ context.Context, dir, name string, args ...string) er
 	return f.Err
 }
 
-func TestAddCreatesMainAndBranch(t *testing.T) {
+func TestAddCreatesBaseAndBranch(t *testing.T) {
 	repo := t.TempDir()
 	require.NoError(t, os.Mkdir(filepath.Join(repo, ".git"), 0o755))
 
 	runner := &fakeRunner{}
-	err := Add(context.Background(), runner, repo, "feature")
+	err := Add(context.Background(), runner, repo, "main", "feature")
 	require.NoError(t, err)
 	require.Len(t, runner.Calls, 2)
 
-	mainPath := filepath.Join(repo, "main")
+	basePath := filepath.Join(repo, "main")
 	branchPath := filepath.Join(repo, "feature")
 
 	require.Equal(t, call{
 		Dir:  repo,
 		Name: "git",
-		Args: []string{"worktree", "add", "-B", "main", mainPath, "main"},
+		Args: []string{"worktree", "add", "-B", "main", basePath, "main"},
 	}, runner.Calls[0])
 	require.Equal(t, call{
 		Dir:  repo,
@@ -57,7 +57,7 @@ func TestRemoveWorktree(t *testing.T) {
 	require.NoError(t, os.Mkdir(branchPath, 0o755))
 
 	runner := &fakeRunner{}
-	err := Remove(context.Background(), runner, repo, "feature")
+	err := Remove(context.Background(), runner, repo, "main", "feature")
 	require.NoError(t, err)
 	require.Len(t, runner.Calls, 1)
 	require.Equal(t, call{
