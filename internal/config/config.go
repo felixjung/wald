@@ -54,6 +54,17 @@ func (c *Config) FindProject(name string) (Project, bool) {
 	return Project{}, false
 }
 
+// ProjectPath resolves the project directory on disk.
+func ProjectPath(root, projectName string) string {
+	if projectName == "" {
+		return ""
+	}
+	if filepath.IsAbs(projectName) {
+		return filepath.Clean(projectName)
+	}
+	return filepath.Join(root, projectName)
+}
+
 // RepoPath resolves the repository root directory on disk.
 func RepoPath(root, repo string) string {
 	if repo == "" {

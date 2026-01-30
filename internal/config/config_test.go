@@ -38,6 +38,12 @@ func TestRepoPath(t *testing.T) {
 	require.Equal(t, "/abs/repo", RepoPath("/root", "/abs/repo"))
 }
 
+func TestProjectPath(t *testing.T) {
+	require.Equal(t, filepath.FromSlash("/root/portier-backend"), ProjectPath("/root", "portier-backend"))
+	require.Equal(t, "/abs/project", ProjectPath("/root", "/abs/project"))
+	require.Empty(t, ProjectPath("/root", ""))
+}
+
 func TestFindProject(t *testing.T) {
 	cfg := &Config{Projects: []Project{{Name: "repo", Repo: "github.com/felixjung/mono"}}}
 	project, ok := cfg.FindProject("repo")
