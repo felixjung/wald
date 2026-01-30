@@ -4,11 +4,9 @@ import (
 	"context"
 
 	"github.com/urfave/cli/v3"
-
-	"github.com/felixjung/trees/internal/app"
 )
 
-func newRemoveCommand(deps commandDeps) *cli.Command {
+func newRemoveCommand(app appAPI) *cli.Command {
 	return &cli.Command{
 		Name:  "remove",
 		Usage: "Remove a worktree for a project",
@@ -17,11 +15,7 @@ func newRemoveCommand(deps commandDeps) *cli.Command {
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name", Required: true},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cfg, _, err := deps.ConfigLoader()
-			if err != nil {
-				return err
-			}
-			return app.RunRemove(ctx, app.Deps{Runner: deps.Runner, Stdout: deps.Stdout}, cfg, cmd.String("project"), cmd.String("name"))
+			return app.Remove(ctx, cmd.String("project"), cmd.String("name"))
 		},
 	}
 }
