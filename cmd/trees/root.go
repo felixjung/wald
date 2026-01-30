@@ -1,6 +1,10 @@
 package main
 
-import "github.com/urfave/cli/v3"
+import (
+	"github.com/urfave/cli/v3"
+
+	configcmd "github.com/felixjung/trees/cmd/trees/config"
+)
 
 func newRootCommand(app appAPI) *cli.Command {
 	return &cli.Command{
@@ -9,6 +13,7 @@ func newRootCommand(app appAPI) *cli.Command {
 		Commands: []*cli.Command{
 			newAddCommand(app),
 			newRemoveCommand(app),
+			configcmd.NewCommand(configcmd.Deps{}),
 		},
 	}
 }

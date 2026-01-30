@@ -21,10 +21,7 @@ projects:
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(content), 0o644))
 
-	t.Setenv("XDG_CONFIG_HOME", xdg)
-	t.Setenv("HOME", temp)
-
-	cfg, _, err := Load()
+	cfg, err := Load(configPath)
 	require.NoError(t, err)
 	require.Equal(t, filepath.FromSlash("/tmp/worktrees"), cfg.WorktreeRoot)
 
