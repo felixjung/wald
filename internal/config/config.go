@@ -32,20 +32,16 @@ type Project struct {
 }
 
 // Load reads the config from disk and validates it.
-func Load() (*Config, string, error) {
+func Load(path string) (*Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, "", fmt.Errorf("resolve home dir: %w", err)
-	}
-	path, err := resolvePath(os.Getenv, homeDir, fileExists)
-	if err != nil {
-		return nil, "", err
+		return nil, fmt.Errorf("resolve home dir: %w", err)
 	}
 	cfg, err := loadFromPath(path, homeDir)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return cfg, path, nil
+	return cfg, nil
 }
 
 // FindProject finds a project by name.

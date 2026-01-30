@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	configcmd "github.com/felixjung/trees/cmd/trees/config"
 	"github.com/felixjung/trees/internal/app"
 	"github.com/felixjung/trees/internal/config"
 	"github.com/felixjung/trees/internal/runner"
@@ -15,7 +16,17 @@ type appAPI interface {
 }
 
 func main() {
-	cfg, _, err := config.Load()
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	configPath, err := configcmd.ResolvePath(os.Getenv, homeDir, os.Stat)
+	if err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
