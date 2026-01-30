@@ -25,50 +25,39 @@ func (f *fakeRunner) Run(_ context.Context, dir, name string, args ...string) er
 	return f.Err
 }
 
-func TestAddCreatesBaseAndBranch(t *testing.T) {
-	repo := t.TempDir()
-	require.NoError(t, os.Mkdir(filepath.Join(repo, ".git"), 0o755))
+func TestAddCreatesBranch(t *testing.T) {
+	gitDir := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
 
+	worktreePath := filepath.Join(t.TempDir(), "feature")
 	runner := &fakeRunner{}
-	err := Add(context.Background(), runner, repo, "main", "feature")
+	result, err := Add(context.Background(), runner, gitDir, worktreePath)
 	require.NoError(t, err)
-	require.Len(t, runner.Calls, 2)
-
-	basePath := filepath.Join(repo, "main")
-	branchPath := filepath.Join(repo, "feature")
+	require.Equal(t, worktreePath, result)
+	require.Len(t, runner.Calls, 1)
 
 	require.Equal(t, call{
-		Dir:  repo,
+		Dir:  gitDir,
 		Name: "git",
-		Args: []string{"worktree", "add", "-B", "main", basePath, "main"},
+		Args: []string{"worktree", "add", "-b", "feature", worktreePath},
 	}, runner.Calls[0])
-	require.Equal(t, call{
-		Dir:  repo,
-		Name: "git",
-		Args: []string{"worktree", "add", "-b", "feature", branchPath, "main"},
-	}, runner.Calls[1])
 }
 
 func TestRemoveWorktree(t *testing.T) {
-	repo := t.TempDir()
-	require.NoError(t, os.Mkdir(filepath.Join(repo, ".git"), 0o755))
+	gitDir := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
 
-	branchPath := filepath.Join(repo, "feature")
-	require.NoError(t, os.Mkdir(branchPath, 0o755))
+	worktreePath := filepath.Join(t.TempDir(), "feature")
+	require.NoError(t, os.MkdirAll(worktreePath, 0o755))
 
 	runner := &fakeRunner{}
-	err := Remove(context.Background(), runner, repo, "main", "feature")
+	result, err := Remove(context.Background(), runner, gitDir, worktreePath)
 	require.NoError(t, err)
+	require.Equal(t, worktreePath, result)
 	require.Len(t, runner.Calls, 1)
 	require.Equal(t, call{
-		Dir:  repo,
+		Dir:  gitDir,
 		Name: "git",
-		Args: []string{"worktree", "remove", branchPath},
+		Args: []string{"worktree", "remove", worktreePath},
 	}, runner.Calls[0])
-}
-
-func TestWorkdirPath(t *testing.T) {
-	repo := filepath.FromSlash("/repo")
-	require.Equal(t, filepath.FromSlash("/repo/branch"), WorkdirPath(repo, "branch", ""))
-	require.Equal(t, filepath.FromSlash("/repo/branch/apps/repo"), WorkdirPath(repo, "branch", "apps/repo"))
 }

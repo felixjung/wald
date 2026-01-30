@@ -14,91 +14,43 @@ type Runner interface {
 	Run(ctx context.Context, dir, name string, args ...string) error
 }
 
-// Add creates a worktree for the given branch name, branching from baseBranch.
-// If branch is omitted, baseBranch is treated as the branch name and "main" is used as the base branch.
-func Add(ctx context.Context, r Runner, repoRoot, baseBranch string, branch ...string) error {
-	branchName := stringsTrim(baseBranch)
-	if len(branch) > 0 {
-		branchName = stringsTrim(branch[0])
-	}
+// Add creates a worktree for the given branch path. The branch name is derived from the path base.
+func Add(ctx context.Context, r Runner, gitDir, worktreePath string) (string, error) {
+	branchName := strings.TrimSpace(filepath.Base(worktreePath))
 	if branchName == "" {
-		return errors.New("branch name is required")
+		return "", errors.New("branch name is required")
 	}
-	if len(branch) == 0 {
-		baseBranch = "main"
+	if err := validateRepoRoot(gitDir); err != nil {
+		return "", err
 	}
-	baseBranch = stringsTrim(baseBranch)
-	if baseBranch == "" {
-		return errors.New("default branch is required")
+	if pathExists(worktreePath) {
+		return "", fmt.Errorf("worktree path already exists: %s", worktreePath)
 	}
-	if branchName == baseBranch {
-		return fmt.Errorf("branch name %q is reserved", baseBranch)
+	if err := r.Run(ctx, gitDir, "git", "worktree", "add", "-b", branchName, worktreePath); err != nil {
+		return "", fmt.Errorf("add worktree: %w", err)
 	}
-	if err := validateRepoRoot(repoRoot); err != nil {
-		return err
-	}
-
-	basePath := filepath.Join(repoRoot, baseBranch)
-	if !pathExists(basePath) {
-		if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-B", baseBranch, basePath, baseBranch); err != nil {
-			return fmt.Errorf("ensure default branch worktree: %w", err)
-		}
-	}
-
-	branchPath := filepath.Join(repoRoot, branchName)
-	if pathExists(branchPath) {
-		return fmt.Errorf("worktree path already exists: %s", branchPath)
-	}
-	if err := r.Run(ctx, repoRoot, "git", "worktree", "add", "-b", branchName, branchPath, baseBranch); err != nil {
-		return fmt.Errorf("add worktree: %w", err)
-	}
-	return nil
+	return worktreePath, nil
 }
 
-// Remove deletes a worktree for the given branch name.
-// If branch is omitted, baseBranch is treated as the branch name and "main" is used as the base branch.
-func Remove(ctx context.Context, r Runner, repoRoot, baseBranch string, branch ...string) error {
-	branchName := stringsTrim(baseBranch)
-	if len(branch) > 0 {
-		branchName = stringsTrim(branch[0])
+// Remove deletes a worktree at the given path.
+func Remove(ctx context.Context, r Runner, gitDir, worktreePath string) (string, error) {
+	if strings.TrimSpace(worktreePath) == "" {
+		return "", errors.New("worktree path is required")
 	}
-	if branchName == "" {
-		return errors.New("branch name is required")
+	if err := validateRepoRoot(gitDir); err != nil {
+		return "", err
 	}
-	if len(branch) == 0 {
-		baseBranch = "main"
+	if !pathExists(worktreePath) {
+		return "", fmt.Errorf("worktree path does not exist: %s", worktreePath)
 	}
-	baseBranch = stringsTrim(baseBranch)
-	if baseBranch == "" {
-		return errors.New("default branch is required")
+	if err := r.Run(ctx, gitDir, "git", "worktree", "remove", worktreePath); err != nil {
+		return "", fmt.Errorf("remove worktree: %w", err)
 	}
-	if branchName == baseBranch {
-		return fmt.Errorf("cannot remove the default branch worktree %q", baseBranch)
-	}
-	if err := validateRepoRoot(repoRoot); err != nil {
-		return err
-	}
-
-	branchPath := filepath.Join(repoRoot, branchName)
-	if !pathExists(branchPath) {
-		return fmt.Errorf("worktree path does not exist: %s", branchPath)
-	}
-	if err := r.Run(ctx, repoRoot, "git", "worktree", "remove", branchPath); err != nil {
-		return fmt.Errorf("remove worktree: %w", err)
-	}
-	return nil
-}
-
-// WorkdirPath resolves the working directory for a project within a worktree.
-func WorkdirPath(repoRoot, branch, workdir string) string {
-	if workdir == "" {
-		return filepath.Join(repoRoot, branch)
-	}
-	return filepath.Join(repoRoot, branch, filepath.FromSlash(workdir))
+	return worktreePath, nil
 }
 
 func validateRepoRoot(repoRoot string) error {
-	if stringsTrim(repoRoot) == "" {
+	if strings.TrimSpace(repoRoot) == "" {
 		return errors.New("repo root is required")
 	}
 	info, err := os.Stat(repoRoot)
@@ -118,8 +70,4 @@ func validateRepoRoot(repoRoot string) error {
 func pathExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
-}
-
-func stringsTrim(value string) string {
-	return strings.TrimSpace(value)
 }

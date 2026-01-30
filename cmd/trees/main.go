@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	configcmd "github.com/felixjung/trees/cmd/trees/config"
 	"github.com/felixjung/trees/internal/app"
@@ -17,12 +20,20 @@ type appAPI interface {
 }
 
 func main() {
+	verbose := hasVerboseFlag(os.Args[1:])
+	quietOut := io.Discard
+	quietErr := io.Discard
+	if verbose {
+		quietOut = os.Stdout
+		quietErr = os.Stderr
+	}
+
 	cfg, err := loadConfigIfNeeded(os.Args[1:])
 	if err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
-	application, err := app.New(app.Deps{Runner: runner.OSRunner{Stdout: os.Stdout, Stderr: os.Stderr}, Stdout: os.Stdout}, cfg)
+	application, err := app.New(app.Deps{Runner: runner.OSRunner{Stdout: quietOut, Stderr: quietErr}, Stdout: os.Stdout}, cfg)
 	if err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
@@ -69,4 +80,32 @@ func firstNonFlagArg(args []string) string {
 		return arg
 	}
 	return ""
+}
+
+func hasVerboseFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--" {
+			return false
+		}
+		if arg == "-v" || arg == "--verbose" {
+			return true
+		}
+		if strings.HasPrefix(arg, "--verbose=") {
+			value := strings.TrimPrefix(arg, "--verbose=")
+			parsed, err := strconv.ParseBool(value)
+			if err != nil {
+				return true
+			}
+			return parsed
+		}
+		if strings.HasPrefix(arg, "-v=") {
+			value := strings.TrimPrefix(arg, "-v=")
+			parsed, err := strconv.ParseBool(value)
+			if err != nil {
+				return true
+			}
+			return parsed
+		}
+	}
+	return false
 }

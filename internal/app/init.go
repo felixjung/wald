@@ -40,7 +40,7 @@ func (a *App) Init(ctx context.Context) error {
 }
 
 func (a *App) ensureProjectFolder(project config.Project) error {
-	projectRoot := config.RepoPath(a.cfg.WorktreeRoot, project.Repo)
+	projectRoot := config.ProjectPath(a.cfg.WorktreeRoot, project.Name)
 	if err := os.MkdirAll(projectRoot, 0o755); err != nil {
 		return fmt.Errorf("create project folder %s: %w", projectRoot, err)
 	}
@@ -48,7 +48,7 @@ func (a *App) ensureProjectFolder(project config.Project) error {
 }
 
 func (a *App) ensureDefaultBranch(ctx context.Context, client *gh.GitHubCLI, project config.Project) error {
-	projectRoot := config.RepoPath(a.cfg.WorktreeRoot, project.Repo)
+	projectRoot := config.ProjectPath(a.cfg.WorktreeRoot, project.Name)
 	branchPath := filepath.Join(projectRoot, project.DefaultBranch)
 	if _, err := os.Stat(branchPath); err == nil {
 		return nil
