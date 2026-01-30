@@ -7,8 +7,8 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/felixjung/trees/internal/config"
+	"github.com/felixjung/trees/internal/runner"
 	"github.com/felixjung/trees/internal/worktree"
-	"github.com/felixjung/trees/runner"
 )
 
 type commandDeps struct {
