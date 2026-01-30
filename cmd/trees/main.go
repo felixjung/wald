@@ -4,12 +4,11 @@ import (
 	"context"
 	"os"
 
-	"github.com/felixjung/trees/internal/app"
 	"github.com/felixjung/trees/runner"
 )
 
 func main() {
-	cmd := app.New(app.Deps{
+	cmd := newRootCommand(commandDeps{
 		Runner: runner.OSRunner{Stdout: os.Stdout, Stderr: os.Stderr},
 		Stdout: os.Stdout,
 	})
