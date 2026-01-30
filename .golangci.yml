@@ -1,0 +1,173 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - asciicheck
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - copyloopvar
+    - depguard
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - funcorder
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocritic
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - govet
+    - ineffassign
+    - makezero
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+    - testifylint
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    - whitespace
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/pkg/errors
+              desc: Use "errors" from std lib instead.
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+    exhaustive:
+      default-signifies-exhaustive: true
+    gocritic:
+      disabled-checks:
+        - sloppyReassign
+        - whyNoLint
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      settings:
+        hugeParam:
+          sizeThreshold: 512
+    gomoddirectives:
+      replace-local: true
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 10
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      rules:
+        - name: blank-imports
+          disabled: true
+    staticcheck:
+      checks: ["all", "-QF1008"]
+    testifylint:
+      enable:
+        - bool-compare
+        - compares
+        - empty
+        - error-is-as
+        - error-nil
+        - expected-actual
+        - float-compare
+        - len
+        - suite-dont-use-pkg
+        - suite-extra-assert-call
+        - suite-thelper
+      go-require:
+        ignore-http-handlers: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - bodyclose
+          - err113
+          - errcheck
+          - errorlint
+          - funlen
+          - goconst
+          - gocyclo
+          - gosec
+          - lll
+          - noctx
+          - prealloc
+          - unparam
+        path: _test\.go
+      - linters:
+          - gocritic
+          - unused
+        path: cmd/scripts/
+      - linters:
+          - gosec
+        text: "G101:"
+      - linters:
+          - gosec
+        text: "G115:"
+      - path: (.+)\.go$
+        text: declaration of "(err|ctx)" shadows declaration at
+      - path: (.+)\.go$
+        text: importShadow
+    paths:
+      - .*_mock_test.go$
+      - .*(.|_)gen\.go
+      - third_party$
+      - builtin$
+      - examples$
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/felixjung/trees)
+        - dot
+    goimports:
+      local-prefixes:
+        - github.com/felixjung/trees
+  exclusions:
+    generated: lax
+    paths:
+      - .*_mock_test.go$
+      - .*(.|_)gen\.go
+      - third_party$
+      - builtin$
+      - examples$
