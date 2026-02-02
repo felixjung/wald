@@ -14,9 +14,9 @@ import (
 )
 
 type appAPI interface {
-	Add(ctx context.Context, projectName, branch string) error
+	Add(ctx context.Context, projectName, branch string, extraArgs []string) error
 	Init(ctx context.Context) error
-	Remove(ctx context.Context, projectName, branch string) error
+	Remove(ctx context.Context, projectName, branch string, extraArgs []string) error
 }
 
 func main() {

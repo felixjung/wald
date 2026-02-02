@@ -25,39 +25,95 @@ func (f *fakeRunner) Run(_ context.Context, dir, name string, args ...string) er
 	return f.Err
 }
 
-func TestAddCreatesBranch(t *testing.T) {
-	gitDir := t.TempDir()
+func TestAddCreatesWorktree(t *testing.T) {
+	root := t.TempDir()
+	gitDir := filepath.Join(root, "main")
+	require.NoError(t, os.MkdirAll(gitDir, 0o755))
 	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
 
-	worktreePath := filepath.Join(t.TempDir(), "feature")
-	runner := &fakeRunner{}
-	result, err := Add(context.Background(), runner, gitDir, worktreePath)
+	worktreePath := filepath.Join(root, "feature")
+	relativePath, err := filepath.Rel(gitDir, worktreePath)
 	require.NoError(t, err)
-	require.Equal(t, worktreePath, result)
+	runner := &fakeRunner{}
+	result, err := Add(context.Background(), runner, gitDir, relativePath, nil)
+	require.NoError(t, err)
+	require.Equal(t, relativePath, result)
 	require.Len(t, runner.Calls, 1)
 
 	require.Equal(t, call{
 		Dir:  gitDir,
 		Name: "git",
-		Args: []string{"worktree", "add", "-b", "feature", worktreePath},
+		Args: []string{"worktree", "add", relativePath},
 	}, runner.Calls[0])
 }
 
 func TestRemoveWorktree(t *testing.T) {
-	gitDir := t.TempDir()
+	root := t.TempDir()
+	gitDir := filepath.Join(root, "main")
+	require.NoError(t, os.MkdirAll(gitDir, 0o755))
 	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
 
-	worktreePath := filepath.Join(t.TempDir(), "feature")
-	require.NoError(t, os.MkdirAll(worktreePath, 0o755))
+	worktreePath := filepath.Join(root, "feature")
+	relativePath, err := filepath.Rel(gitDir, worktreePath)
+	require.NoError(t, err)
 
 	runner := &fakeRunner{}
-	result, err := Remove(context.Background(), runner, gitDir, worktreePath)
+	result, err := Remove(context.Background(), runner, gitDir, relativePath, nil)
 	require.NoError(t, err)
-	require.Equal(t, worktreePath, result)
+	require.Equal(t, relativePath, result)
 	require.Len(t, runner.Calls, 1)
 	require.Equal(t, call{
 		Dir:  gitDir,
 		Name: "git",
-		Args: []string{"worktree", "remove", worktreePath},
+		Args: []string{"worktree", "remove", relativePath},
 	}, runner.Calls[0])
+}
+
+func TestAddForwardsExtraArgs(t *testing.T) {
+	root := t.TempDir()
+	gitDir := filepath.Join(root, "main")
+	require.NoError(t, os.MkdirAll(gitDir, 0o755))
+	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
+
+	worktreePath := filepath.Join(root, "feature")
+	relativePath, err := filepath.Rel(gitDir, worktreePath)
+	require.NoError(t, err)
+	runner := &fakeRunner{}
+	result, err := Add(context.Background(), runner, gitDir, relativePath, []string{"--", "--force"})
+	require.NoError(t, err)
+	require.Equal(t, relativePath, result)
+	require.Len(t, runner.Calls, 1)
+
+	require.Equal(t, call{
+		Dir:  gitDir,
+		Name: "git",
+		Args: []string{"worktree", "add", "--force", relativePath},
+	}, runner.Calls[0])
+}
+
+func TestRemoveForwardsExtraArgs(t *testing.T) {
+	root := t.TempDir()
+	gitDir := filepath.Join(root, "main")
+	require.NoError(t, os.MkdirAll(gitDir, 0o755))
+	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
+
+	worktreePath := filepath.Join(root, "feature")
+	relativePath, err := filepath.Rel(gitDir, worktreePath)
+	require.NoError(t, err)
+
+	runner := &fakeRunner{}
+	result, err := Remove(context.Background(), runner, gitDir, relativePath, []string{"--", "--force"})
+	require.NoError(t, err)
+	require.Equal(t, relativePath, result)
+	require.Len(t, runner.Calls, 1)
+	require.Equal(t, call{
+		Dir:  gitDir,
+		Name: "git",
+		Args: []string{"worktree", "remove", "--force", relativePath},
+	}, runner.Calls[0])
+}
+
+func TestSplitExtraArgsRequiresSeparator(t *testing.T) {
+	_, err := splitExtraArgs([]string{"--force"})
+	require.Error(t, err)
 }
