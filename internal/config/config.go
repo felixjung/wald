@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	defaultWorkdir       = "."
-	defaultDefaultBranch = "main"
+	defaultWorkdir = "."
+	defaultBranch  = "main"
 )
 
 // Config defines the trees configuration file schema.
@@ -27,8 +27,8 @@ type Config struct {
 type Project struct {
 	Name          string `yaml:"name"`
 	Repo          string `yaml:"repo"`
-	Workdir       string `yaml:"workdir"`
-	DefaultBranch string `yaml:"default_branch"`
+	Workdir       string `yaml:"workdir,omitempty"`
+	DefaultBranch string `yaml:"default_branch,omitempty"`
 }
 
 // Load reads the config from disk and validates it.
@@ -84,9 +84,6 @@ func (c *Config) validate() error {
 	if strings.TrimSpace(c.WorktreeRoot) == "" {
 		return errors.New("config worktree_root is required")
 	}
-	if len(c.Projects) == 0 {
-		return errors.New("config projects is required")
-	}
 	for _, project := range c.Projects {
 		if project.Name == "" {
 			return errors.New("project name is required")
@@ -136,7 +133,7 @@ func (c *Config) normalize(homeDir string) error {
 			project.Workdir = defaultWorkdir
 		}
 		if project.DefaultBranch == "" {
-			project.DefaultBranch = defaultDefaultBranch
+			project.DefaultBranch = defaultBranch
 		}
 	}
 	return nil

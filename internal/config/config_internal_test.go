@@ -86,5 +86,5 @@ projects:
 	cfg, err := loadFromPath(cfgPath, "/home/test")
 	require.NoError(t, err)
 	require.Equal(t, defaultWorkdir, cfg.Projects[0].Workdir)
-	require.Equal(t, defaultDefaultBranch, cfg.Projects[0].DefaultBranch)
+	require.Equal(t, defaultBranch, cfg.Projects[0].DefaultBranch)
 }
