@@ -11,12 +11,12 @@ func newAddCommand(app appAPI) *cli.Command {
 	return &cli.Command{
 		Name:      "add",
 		Usage:     "Add a worktree for a project",
-		ArgsUsage: "path [-- <git worktree add args>]",
+		ArgsUsage: "<path> [-- <git worktree add args>]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name", Required: true},
 		},
 		Arguments: []cli.Argument{
-			&cli.StringArg{Name: "path", UsageText: "worktree path"},
+			&cli.StringArg{Name: "path", UsageText: "<worktree path>"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			path := strings.TrimSpace(cmd.StringArg("path"))
