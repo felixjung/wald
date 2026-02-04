@@ -2,7 +2,9 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -10,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	internalconfig "github.com/felixjung/trees/internal/config"
+	"github.com/felixjung/trees/internal/tui"
 )
 
 func newAddCommand(deps Deps) *cli.Command {
@@ -18,7 +21,7 @@ func newAddCommand(deps Deps) *cli.Command {
 		Usage:     "Add a project to the trees config",
 		ArgsUsage: "<name>",
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "repo", Aliases: []string{"r"}, Usage: "git repository", Required: true},
+			&cli.StringFlag{Name: "repo", Aliases: []string{"r"}, Usage: "git repository"},
 			&cli.StringFlag{Name: "workdir", Aliases: []string{"w"}, Usage: "relative workdir within the repo"},
 		},
 		Arguments: []cli.Argument{
@@ -26,14 +29,41 @@ func newAddCommand(deps Deps) *cli.Command {
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			name := strings.TrimSpace(cmd.StringArg("name"))
+			repo := strings.TrimSpace(cmd.String("repo"))
+			workdir := strings.TrimSpace(cmd.String("workdir"))
+
+			if name == "" || repo == "" {
+				if !tui.IsTerminal(os.Stdin) {
+					return cli.Exit("project name and repo are required", 1)
+				}
+				fields, err := tui.Prompt("Add project", []tui.Field{
+					{ID: "name", Label: "Project name", Value: name, Required: true},
+					{ID: "repo", Label: "Repository", Value: repo, Required: true},
+					{ID: "workdir", Label: "Workdir", Placeholder: "relative path", Value: workdir, Default: "."},
+				})
+				if err != nil {
+					if errors.Is(err, tui.ErrCanceled) {
+						return cli.Exit("prompt canceled", 1)
+					}
+					return err
+				}
+				name = strings.TrimSpace(fieldValue(fields, "name"))
+				repo = strings.TrimSpace(fieldValue(fields, "repo"))
+				if field, ok := fieldByID(fields, "workdir"); ok {
+					if field.UsedDefault {
+						workdir = ""
+					} else {
+						workdir = strings.TrimSpace(field.Value)
+					}
+				}
+			}
+
 			if name == "" {
 				return cli.Exit("project name is required", 1)
 			}
-			repo := strings.TrimSpace(cmd.String("repo"))
 			if repo == "" {
 				return cli.Exit("repo is required", 1)
 			}
-			workdir := strings.TrimSpace(cmd.String("workdir"))
 			if workdir != "" && filepath.IsAbs(workdir) {
 				return cli.Exit("workdir must be relative", 1)
 			}

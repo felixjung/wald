@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	internalconfig "github.com/felixjung/trees/internal/config"
+	"github.com/felixjung/trees/internal/tui"
 )
 
 func newInitCommand(deps Deps) *cli.Command {
@@ -18,12 +20,27 @@ func newInitCommand(deps Deps) *cli.Command {
 		Name:  "init",
 		Usage: "Initialize a trees config file",
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "worktree-root", Aliases: []string{"r"}, Usage: "root folder for worktrees", Required: true},
+			&cli.StringFlag{Name: "worktree-root", Aliases: []string{"r"}, Usage: "root folder for worktrees"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			root := strings.TrimSpace(cmd.String("worktree-root"))
 			if root == "" {
-				return errors.New("worktree-root is required")
+				if !tui.IsTerminal(os.Stdin) {
+					return cli.Exit("worktree-root is required", 1)
+				}
+				fields, err := tui.Prompt("Initialize config", []tui.Field{
+					{ID: "root", Label: "Worktree root", Value: root, Required: true},
+				})
+				if err != nil {
+					if errors.Is(err, tui.ErrCanceled) {
+						return cli.Exit("prompt canceled", 1)
+					}
+					return err
+				}
+				root = strings.TrimSpace(fieldValue(fields, "root"))
+			}
+			if root == "" {
+				return cli.Exit("worktree-root is required", 1)
 			}
 			homeDir, err := deps.UserHomeDir()
 			if err != nil {
