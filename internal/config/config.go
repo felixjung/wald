@@ -17,7 +17,7 @@ const (
 	defaultBranch  = "main"
 )
 
-// Config defines the trees configuration file schema.
+// Config defines the forest configuration file schema.
 type Config struct {
 	WorktreeRoot string    `yaml:"worktree_root"`
 	Projects     []Project `yaml:"projects"`
@@ -139,14 +139,14 @@ func (c *Config) normalize(homeDir string) error {
 	return nil
 }
 
-// resolvePath picks the config file path based on XDG or ~/.trees.yaml.
+// resolvePath picks the config file path based on XDG or ~/.forest.yaml.
 func resolvePath(getenv func(string) string, homeDir string, exists func(string) bool) (string, error) {
 	xdg := getenv("XDG_CONFIG_HOME")
 	if xdg == "" {
 		xdg = filepath.Join(homeDir, ".config")
 	}
-	xdgPath := filepath.Join(xdg, "trees", "config.yaml")
-	dotPath := filepath.Join(homeDir, ".trees.yaml")
+	xdgPath := filepath.Join(xdg, "forest", "config.yaml")
+	dotPath := filepath.Join(homeDir, ".forest.yaml")
 
 	if exists(xdgPath) {
 		return xdgPath, nil

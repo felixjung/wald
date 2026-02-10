@@ -11,7 +11,7 @@ import (
 func TestLoad(t *testing.T) {
 	temp := t.TempDir()
 	xdg := filepath.Join(temp, "xdg")
-	configPath := filepath.Join(xdg, "trees", "config.yaml")
+	configPath := filepath.Join(xdg, "forest", "config.yaml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(configPath), 0o755))
 
 	content := `worktree_root: /tmp/worktrees

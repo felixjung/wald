@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/felixjung/trees/internal/runner"
+	"github.com/felixjung/forest/internal/runner"
 )
 
 const binaryName = "gh"

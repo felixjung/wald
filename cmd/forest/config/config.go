@@ -9,10 +9,10 @@ import (
 const (
 	EnvXDGConfigHome = "XDG_CONFIG_HOME"
 
-	XDGTreesFolderName     = "trees"
-	XDGTreesConfigFileName = "config.yaml"
+	XDGForestFolderName     = "forest"
+	XDGForestConfigFileName = "config.yaml"
 
-	HomeConfigFileName = ".trees.yaml"
+	HomeConfigFileName = ".forest.yaml"
 )
 
 func Paths(getenv func(string) string, homeDir string) (xdgPath, dotPath string) {
@@ -20,7 +20,7 @@ func Paths(getenv func(string) string, homeDir string) (xdgPath, dotPath string)
 	if xdg == "" {
 		xdg = filepath.Join(homeDir, ".config")
 	}
-	xdgPath = filepath.Join(xdg, XDGTreesFolderName, XDGTreesConfigFileName)
+	xdgPath = filepath.Join(xdg, XDGForestFolderName, XDGForestConfigFileName)
 	dotPath = filepath.Join(homeDir, HomeConfigFileName)
 	return xdgPath, dotPath
 }

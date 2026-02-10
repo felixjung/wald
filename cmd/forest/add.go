@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/felixjung/trees/internal/tui"
+	"github.com/felixjung/forest/internal/tui"
 )
 
 func newAddCommand(app appAPI) *cli.Command {

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/gh"
+	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/gh"
 )
 
 // Init initializes worktrees for all configured projects.

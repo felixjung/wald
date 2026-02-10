@@ -19,7 +19,7 @@ lint: ## Run golangci-lint
 
 build: download ## Build the program
 	@mkdir -p bin
-	@go build -o bin/trees github.com/felixjung/trees/cmd/trees
+	@go build -o bin/forest github.com/felixjung/forest/cmd/forest
 
 download: ## Download dependencies
 	@echo Download go.mod dependencies
