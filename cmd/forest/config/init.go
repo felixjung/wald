@@ -11,14 +11,14 @@ import (
 	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 
-	internalconfig "github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/tui"
+	internalconfig "github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/tui"
 )
 
 func newInitCommand(deps Deps) *cli.Command {
 	return &cli.Command{
 		Name:  "init",
-		Usage: "Initialize a trees config file",
+		Usage: "Initialize a forest config file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "worktree-root", Aliases: []string{"r"}, Usage: "root folder for worktrees"},
 		},

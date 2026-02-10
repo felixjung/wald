@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/worktree"
+	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/worktree"
 )
 
 // Deps wires dependencies for the app logic.

@@ -11,14 +11,14 @@ import (
 	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 
-	internalconfig "github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/tui"
+	internalconfig "github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/tui"
 )
 
 func newAddCommand(deps Deps) *cli.Command {
 	return &cli.Command{
 		Name:      "add",
-		Usage:     "Add a project to the trees config",
+		Usage:     "Add a project to the forest config",
 		ArgsUsage: "<name>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "repo", Aliases: []string{"r"}, Usage: "git repository"},

@@ -1,13 +1,13 @@
 # AGENTS.md
 
-This repository contains the `trees` Go CLI. Follow these guidelines when making changes.
+This repository contains the `forest` Go CLI. Follow these guidelines when making changes.
 
 ## Project structure
 
-- `cmd/trees`: CLI entrypoints (urfave/cli v3).
+- `cmd/forest`: CLI entrypoints (urfave/cli v3).
   - One file per command (e.g. `add.go`, `remove.go`, `init.go`).
   - Root command in `root.go`; it wires subcommands.
-  - Config subcommands live in `cmd/trees/config` with their own `root.go` and `init.go`.
+  - Config subcommands live in `cmd/forest/config` with their own `root.go` and `init.go`.
 - `internal/app`: Business logic. App methods live in separate files per command.
 - `internal/config`: Config loading + defaults; YAML format.
 - `internal/worktree`: Thin wrapper around `git worktree`.
@@ -30,7 +30,7 @@ This repository contains the `trees` Go CLI. Follow these guidelines when making
 
 ## Config format
 
-YAML (XDG-compliant location via constants in `cmd/trees/config/config.go`):
+YAML (XDG-compliant location via constants in `cmd/forest/config/config.go`):
 
 ```
 worktree_root: ""
@@ -69,9 +69,9 @@ Use `config.Load(path string)` to load configs. Do not load a single project in 
 ## Makefile
 
 - Targets are hidden with `@` (keep this style).
-- `build` should output `./bin/trees`.
+- `build` should output `./bin/forest`.
 
 ## General Go style
 
-- Keep functions small and focused; one command per file in `cmd/trees`.
+- Keep functions small and focused; one command per file in `cmd/forest`.
 - Avoid exporting identifiers that are not used outside the package.

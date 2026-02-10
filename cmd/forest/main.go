@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	configcmd "github.com/felixjung/trees/cmd/trees/config"
-	"github.com/felixjung/trees/internal/app"
-	"github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/runner"
+	configcmd "github.com/felixjung/forest/cmd/forest/config"
+	"github.com/felixjung/forest/internal/app"
+	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/runner"
 )
 
 type appAPI interface {

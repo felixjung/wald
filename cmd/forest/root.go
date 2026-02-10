@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/urfave/cli/v3"
 
-	configcmd "github.com/felixjung/trees/cmd/trees/config"
+	configcmd "github.com/felixjung/forest/cmd/forest/config"
 )
 
 func newRootCommand(app appAPI) *cli.Command {
 	return &cli.Command{
-		Name:  "trees",
+		Name:  "forest",
 		Usage: "Manage git worktrees for configured projects",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "verbose", Aliases: []string{"v"}, Usage: "Print command output"},
