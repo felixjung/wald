@@ -10,9 +10,9 @@ const (
 	EnvXDGConfigHome = "XDG_CONFIG_HOME"
 
 	XDGForestFolderName     = "forest"
-	XDGForestConfigFileName = "config.yaml"
+	XDGForestConfigFileName = "config.toml"
 
-	HomeConfigFileName = ".forest.yaml"
+	HomeConfigFileName = ".forest.toml"
 )
 
 func Paths(getenv func(string) string, homeDir string) (xdgPath, dotPath string) {

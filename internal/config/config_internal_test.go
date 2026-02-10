@@ -15,12 +15,12 @@ func TestResolvePathPrefersXDG(t *testing.T) {
 	require.NoError(t, os.MkdirAll(home, 0o755))
 	require.NoError(t, os.MkdirAll(xdg, 0o755))
 
-	xdgPath := filepath.Join(xdg, "forest", "config.yaml")
+	xdgPath := filepath.Join(xdg, "forest", "config.toml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(xdgPath), 0o755))
-	require.NoError(t, os.WriteFile(xdgPath, []byte("worktree_root: /tmp\nprojects: []\n"), 0o644))
+	require.NoError(t, os.WriteFile(xdgPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
-	dotPath := filepath.Join(home, ".forest.yaml")
-	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root: /tmp\nprojects: []\n"), 0o644))
+	dotPath := filepath.Join(home, ".forest.toml")
+	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
 	path, err := resolvePath(func(key string) string {
 		if key == "XDG_CONFIG_HOME" {
@@ -37,8 +37,8 @@ func TestResolvePathFallsBackToDotfile(t *testing.T) {
 	home := filepath.Join(temp, "home")
 	require.NoError(t, os.MkdirAll(home, 0o755))
 
-	dotPath := filepath.Join(home, ".forest.yaml")
-	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root: /tmp\nprojects: []\n"), 0o644))
+	dotPath := filepath.Join(home, ".forest.toml")
+	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
 	path, err := resolvePath(func(string) string { return "" }, home, fileExists)
 	require.NoError(t, err)
@@ -53,13 +53,14 @@ func TestNormalizeRootExpandsHome(t *testing.T) {
 
 func TestLoadFromPath(t *testing.T) {
 	temp := t.TempDir()
-	cfgPath := filepath.Join(temp, "config.yaml")
-	content := `worktree_root: ~/projects
-projects:
-  - name: repo
-    repo: github.com/felixjung/mono
-    workdir: apps/repo
-    default_branch: develop
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "~/projects"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+workdir = "apps/repo"
+default_branch = "develop"
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
 
@@ -75,11 +76,12 @@ projects:
 
 func TestLoadFromPathDefaults(t *testing.T) {
 	temp := t.TempDir()
-	cfgPath := filepath.Join(temp, "config.yaml")
-	content := `worktree_root: /tmp
-projects:
-  - name: repo
-    repo: github.com/felixjung/mono
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
 

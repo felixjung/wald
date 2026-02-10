@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v3"
-	"gopkg.in/yaml.v3"
 
 	internalconfig "github.com/felixjung/forest/internal/config"
 	"github.com/felixjung/forest/internal/tui"
@@ -90,9 +89,9 @@ func newAddCommand(deps Deps) *cli.Command {
 				Workdir: workdir,
 			})
 
-			content, err := yaml.Marshal(cfg)
+			content, err := marshalConfig(cfg)
 			if err != nil {
-				return fmt.Errorf("render config: %w", err)
+				return err
 			}
 			if err := deps.WriteFile(configPath, content, 0o644); err != nil {
 				return fmt.Errorf("write config: %w", err)

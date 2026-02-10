@@ -9,7 +9,7 @@ This repository contains the `forest` Go CLI. Follow these guidelines when makin
   - Root command in `root.go`; it wires subcommands.
   - Config subcommands live in `cmd/forest/config` with their own `root.go` and `init.go`.
 - `internal/app`: Business logic. App methods live in separate files per command.
-- `internal/config`: Config loading + defaults; YAML format.
+- `internal/config`: Config loading + defaults; TOML format.
 - `internal/worktree`: Thin wrapper around `git worktree`.
 - `internal/gh`: Thin wrapper around `gh` CLI.
 - `internal/runner`: Command runner (respects verbosity).
@@ -30,15 +30,16 @@ This repository contains the `forest` Go CLI. Follow these guidelines when makin
 
 ## Config format
 
-YAML (XDG-compliant location via constants in `cmd/forest/config/config.go`):
+TOML (XDG-compliant location via constants in `cmd/forest/config/config.go`):
 
-```
-worktree_root: ""
-projects:
-  - name: ""
-    repo: ""
-    workdir: ""          # optional, default "."
-    default_branch: ""   # optional, default "main"
+```toml
+worktree_root = ""
+
+[[projects]]
+name = ""
+repo = ""
+workdir = ""         # optional, default "."
+default_branch = ""  # optional, default "main"
 ```
 
 Use `config.Load(path string)` to load configs. Do not load a single project in isolation.

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	altsrc "github.com/urfave/cli-altsrc/v3"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -19,16 +19,16 @@ const (
 
 // Config defines the forest configuration file schema.
 type Config struct {
-	WorktreeRoot string    `yaml:"worktree_root"`
-	Projects     []Project `yaml:"projects"`
+	WorktreeRoot string    `toml:"worktree_root"`
+	Projects     []Project `toml:"projects"`
 }
 
 // Project describes a configured project.
 type Project struct {
-	Name          string `yaml:"name"`
-	Repo          string `yaml:"repo"`
-	Workdir       string `yaml:"workdir,omitempty"`
-	DefaultBranch string `yaml:"default_branch,omitempty"`
+	Name          string `toml:"name"`
+	Repo          string `toml:"repo"`
+	Workdir       string `toml:"workdir,omitempty"`
+	DefaultBranch string `toml:"default_branch,omitempty"`
 }
 
 // Load reads the config from disk and validates it.
@@ -105,7 +105,7 @@ func loadFromPath(path, homeDir string) (*Config, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, errors.New("config path is required")
 	}
-	cache := altsrc.NewURISourceCache[Config](path, yaml.Unmarshal)
+	cache := altsrc.NewURISourceCache[Config](path, toml.Unmarshal)
 	cfg := cache.Get()
 	if err := cfg.normalize(homeDir); err != nil {
 		return nil, err
@@ -139,14 +139,14 @@ func (c *Config) normalize(homeDir string) error {
 	return nil
 }
 
-// resolvePath picks the config file path based on XDG or ~/.forest.yaml.
+// resolvePath picks the config file path based on XDG or ~/.forest.toml.
 func resolvePath(getenv func(string) string, homeDir string, exists func(string) bool) (string, error) {
 	xdg := getenv("XDG_CONFIG_HOME")
 	if xdg == "" {
 		xdg = filepath.Join(homeDir, ".config")
 	}
-	xdgPath := filepath.Join(xdg, "forest", "config.yaml")
-	dotPath := filepath.Join(homeDir, ".forest.yaml")
+	xdgPath := filepath.Join(xdg, "forest", "config.toml")
+	dotPath := filepath.Join(homeDir, ".forest.toml")
 
 	if exists(xdgPath) {
 		return xdgPath, nil
