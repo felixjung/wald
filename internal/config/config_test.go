@@ -11,13 +11,14 @@ import (
 func TestLoad(t *testing.T) {
 	temp := t.TempDir()
 	xdg := filepath.Join(temp, "xdg")
-	configPath := filepath.Join(xdg, "forest", "config.yaml")
+	configPath := filepath.Join(xdg, "forest", "config.toml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(configPath), 0o755))
 
-	content := `worktree_root: /tmp/worktrees
-projects:
-  - name: repo
-    repo: github.com/felixjung/mono
+	content := `worktree_root = "/tmp/worktrees"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(content), 0o644))
 
