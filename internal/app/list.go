@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/felixjung/trees/internal/config"
-	"github.com/felixjung/trees/internal/worktree"
+	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/worktree"
 )
 
 // WorktreeInfo describes a git worktree entry.
@@ -40,7 +40,12 @@ func (a *App) List(ctx context.Context) (string, []ProjectWorktrees, error) {
 			return "", nil, fmt.Errorf("check default branch worktree %s: %w", gitDir, err)
 		}
 
-		entries, err := worktree.List(ctx, a.deps.Runner, gitDir)
+		outputRunner, ok := a.deps.Runner.(worktree.OutputRunner)
+		if !ok {
+			return "", nil, errors.New("runner does not support capturing command output")
+		}
+
+		entries, err := worktree.List(ctx, outputRunner, gitDir)
 		if err != nil {
 			return "", nil, err
 		}
