@@ -19,6 +19,10 @@ func newAddCommand(app appAPI) *cli.Command {
 		ArgsUsage: "<path> [-- <git worktree add args>]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name"},
+			&cli.StringFlag{
+				Name:  "base",
+				Usage: "base reference for the new worktree (for example origin/feature/foo)",
+			},
 			&cli.BoolFlag{Name: "no-switch", Usage: "do not switch to the new worktree"},
 		},
 		Arguments: []cli.Argument{
@@ -27,6 +31,7 @@ func newAddCommand(app appAPI) *cli.Command {
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			project := strings.TrimSpace(cmd.String("project"))
 			path := strings.TrimSpace(cmd.StringArg("path"))
+			startPoint := strings.TrimSpace(cmd.String("base"))
 			extraArgs := cmd.Args().Slice()
 			noSwitch := cmd.Bool("no-switch")
 
@@ -59,7 +64,7 @@ func newAddCommand(app appAPI) *cli.Command {
 			if len(extraArgs) > 0 {
 				extraArgs = append([]string{"--"}, extraArgs...)
 			}
-			target, err := app.AddTarget(ctx, project, path, extraArgs)
+			target, err := app.AddTarget(ctx, project, path, startPoint, extraArgs)
 			if err != nil {
 				return err
 			}

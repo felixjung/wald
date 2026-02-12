@@ -35,7 +35,7 @@ func TestAddCreatesWorktree(t *testing.T) {
 	relativePath, err := filepath.Rel(gitDir, worktreePath)
 	require.NoError(t, err)
 	runner := &fakeRunner{}
-	result, err := Add(context.Background(), runner, gitDir, relativePath, nil)
+	result, err := Add(context.Background(), runner, gitDir, relativePath, "", nil)
 	require.NoError(t, err)
 	require.Equal(t, relativePath, result)
 	require.Len(t, runner.Calls, 1)
@@ -79,7 +79,7 @@ func TestAddForwardsExtraArgs(t *testing.T) {
 	relativePath, err := filepath.Rel(gitDir, worktreePath)
 	require.NoError(t, err)
 	runner := &fakeRunner{}
-	result, err := Add(context.Background(), runner, gitDir, relativePath, []string{"--", "--force"})
+	result, err := Add(context.Background(), runner, gitDir, relativePath, "", []string{"--", "--force"})
 	require.NoError(t, err)
 	require.Equal(t, relativePath, result)
 	require.Len(t, runner.Calls, 1)
@@ -116,4 +116,26 @@ func TestRemoveForwardsExtraArgs(t *testing.T) {
 func TestSplitExtraArgsRequiresSeparator(t *testing.T) {
 	_, err := splitExtraArgs([]string{"--force"})
 	require.Error(t, err)
+}
+
+func TestAddAcceptsStartPoint(t *testing.T) {
+	root := t.TempDir()
+	gitDir := filepath.Join(root, "main")
+	require.NoError(t, os.MkdirAll(gitDir, 0o755))
+	require.NoError(t, os.Mkdir(filepath.Join(gitDir, ".git"), 0o755))
+
+	worktreePath := filepath.Join(root, "feature")
+	relativePath, err := filepath.Rel(gitDir, worktreePath)
+	require.NoError(t, err)
+	runner := &fakeRunner{}
+	result, err := Add(context.Background(), runner, gitDir, relativePath, "origin/feature/foo", nil)
+	require.NoError(t, err)
+	require.Equal(t, relativePath, result)
+	require.Len(t, runner.Calls, 1)
+
+	require.Equal(t, call{
+		Dir:  gitDir,
+		Name: "git",
+		Args: []string{"worktree", "add", relativePath, "origin/feature/foo"},
+	}, runner.Calls[0])
 }

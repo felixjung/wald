@@ -43,7 +43,7 @@ func TestAddRunsPostAddHooks(t *testing.T) {
 	application, err := New(Deps{Runner: runner, Stdout: stdout}, cfg)
 	require.NoError(t, err)
 
-	require.NoError(t, application.Add(context.Background(), projectName, "feature", []string{"--", "--track"}))
+	require.NoError(t, application.Add(context.Background(), projectName, "feature", "", []string{"--", "--track"}))
 
 	worktreePath := filepath.Join(projectRoot, "feature")
 	workdirPath := filepath.Join(worktreePath, "apps/repo")
@@ -98,8 +98,43 @@ func TestAddReturnsPostAddHookError(t *testing.T) {
 	application, err := New(Deps{Runner: runner, Stdout: stdout}, cfg)
 	require.NoError(t, err)
 
-	err = application.Add(context.Background(), projectName, "feature", nil)
+	err = application.Add(context.Background(), projectName, "feature", "", nil)
 	require.EqualError(t, err, `post-add hook "hook" failed: hook failed`)
 	require.Len(t, runner.calls, 2)
 	require.Empty(t, stdout.String())
+}
+
+func TestAddTargetPassesStartPoint(t *testing.T) {
+	root := t.TempDir()
+	projectName := "repo"
+	projectRoot := filepath.Join(root, projectName)
+	gitDir := filepath.Join(projectRoot, "main")
+	require.NoError(t, os.MkdirAll(filepath.Join(gitDir, ".git"), 0o755))
+
+	cfg := &config.Config{
+		WorktreeRoot: root,
+		Projects: []config.Project{
+			{
+				Name:          projectName,
+				Repo:          "github.com/felixjung/mono",
+				Workdir:       ".",
+				DefaultBranch: "main",
+			},
+		},
+	}
+
+	runner := &fakeRunner{}
+	application, err := New(Deps{Runner: runner, Stdout: &bytes.Buffer{}}, cfg)
+	require.NoError(t, err)
+
+	target, err := application.AddTarget(context.Background(), projectName, "feature", "origin/feature/foo", nil)
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(projectRoot, "feature"), target)
+	require.Equal(t, []runnerCall{
+		{
+			Dir:  gitDir,
+			Name: "git",
+			Args: []string{"worktree", "add", "../feature", "origin/feature/foo"},
+		},
+	}, runner.calls)
 }

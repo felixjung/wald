@@ -30,12 +30,20 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			&cli.StringFlag{Name: "worktree", Aliases: []string{"w"}, Usage: "worktree name"},
 			&cli.StringFlag{Name: "working-dir", Usage: "override project workdir for this switch"},
 			&cli.BoolFlag{Name: "create", Usage: "create and switch to a new worktree when missing"},
+			&cli.StringFlag{
+				Name:  "base",
+				Usage: "base reference for created worktree (requires --create)",
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			projectName := strings.TrimSpace(cmd.String("project"))
 			worktreeName := strings.TrimSpace(cmd.String("worktree"))
 			workingDirOverride := strings.TrimSpace(cmd.String("working-dir"))
 			create := cmd.Bool("create")
+			startPoint := strings.TrimSpace(cmd.String("base"))
+			if startPoint != "" && !create {
+				return cli.Exit("base requires --create", 1)
+			}
 
 			_, groups, err := api.List(ctx)
 			if err != nil {
@@ -51,7 +59,7 @@ func newSwitchCommand(api appAPI) *cli.Command {
 				return handleSwitchSelectionError(err)
 			}
 			if createWorktree {
-				if _, err := api.AddTarget(ctx, project, worktree, nil); err != nil {
+				if _, err := api.AddTarget(ctx, project, worktree, startPoint, nil); err != nil {
 					return err
 				}
 			}
