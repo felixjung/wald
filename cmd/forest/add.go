@@ -35,12 +35,23 @@ func newAddCommand(app appAPI) *cli.Command {
 			extraArgs := cmd.Args().Slice()
 			noSwitch := cmd.Bool("no-switch")
 
-			if project == "" || path == "" {
+			if project == "" {
+				_, groups, err := app.List(ctx)
+				if err != nil {
+					return err
+				}
+				selectedProject, _, err := resolveProjectSelection("", groups, false)
+				if err != nil {
+					return handleSwitchSelectionError(err)
+				}
+				project = selectedProject
+			}
+
+			if path == "" {
 				if !tui.IsTerminal(os.Stdin) {
-					return cli.Exit("project name and worktree path are required", 1)
+					return cli.Exit("worktree path is required", 1)
 				}
 				fields, err := tui.Prompt("Add worktree", []tui.Field{
-					{ID: "project", Label: "Project name", Value: project, Required: true},
 					{ID: "path", Label: "Worktree path", Value: path, Required: true},
 					{ID: "extra", Label: "Extra git args", Placeholder: "space-separated", Value: strings.Join(extraArgs, " ")},
 				})
@@ -50,7 +61,6 @@ func newAddCommand(app appAPI) *cli.Command {
 					}
 					return err
 				}
-				project = strings.TrimSpace(fieldValue(fields, "project"))
 				path = strings.TrimSpace(fieldValue(fields, "path"))
 				extraArgs = splitArgs(fieldValue(fields, "extra"))
 			}

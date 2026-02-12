@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
-	"os"
 	"strings"
 
 	"github.com/urfave/cli/v3"
-
-	"github.com/felixjung/forest/internal/tui"
 )
 
 func newRemoveCommand(app appAPI) *cli.Command {
@@ -28,23 +24,21 @@ func newRemoveCommand(app appAPI) *cli.Command {
 			extraArgs := cmd.Args().Slice()
 
 			if project == "" || worktree == "" {
-				if !tui.IsTerminal(os.Stdin) {
-					return cli.Exit("project name and worktree path are required", 1)
-				}
-				fields, err := tui.Prompt("Remove worktree", []tui.Field{
-					{ID: "project", Label: "Project name", Value: project, Required: true},
-					{ID: "worktree", Label: "Worktree path", Value: worktree, Required: true},
-					{ID: "extra", Label: "Extra git args", Placeholder: "space-separated", Value: strings.Join(extraArgs, " ")},
-				})
+				_, groups, err := app.List(ctx)
 				if err != nil {
-					if errors.Is(err, tui.ErrCanceled) {
-						return cli.Exit("prompt canceled", 1)
-					}
 					return err
 				}
-				project = strings.TrimSpace(fieldValue(fields, "project"))
-				worktree = strings.TrimSpace(fieldValue(fields, "worktree"))
-				extraArgs = splitArgs(fieldValue(fields, "extra"))
+				selectedProject, group, err := resolveProjectSelection(project, groups, true)
+				if err != nil {
+					return handleSwitchSelectionError(err)
+				}
+				project = selectedProject
+
+				selectedWorktree, _, err := resolveWorktreeSelection(group, worktree, false)
+				if err != nil {
+					return handleSwitchSelectionError(err)
+				}
+				worktree = selectedWorktree
 			}
 
 			if project == "" {
