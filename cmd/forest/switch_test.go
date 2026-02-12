@@ -24,7 +24,7 @@ func TestResolveProjectSelectionWithFlag(t *testing.T) {
 		},
 	}
 
-	project, group, err := resolveProjectSelection("repo", groups)
+	project, group, err := resolveProjectSelection("repo", groups, true)
 	require.NoError(t, err)
 	require.Equal(t, "repo", project)
 	require.Equal(t, "repo", group.Project.Name)
@@ -32,7 +32,7 @@ func TestResolveProjectSelectionWithFlag(t *testing.T) {
 
 func TestResolveProjectSelectionRequiresFlagWithoutTTY(t *testing.T) {
 	defer withSwitchTTY(false)()
-	_, _, err := resolveProjectSelection("", nil)
+	_, _, err := resolveProjectSelection("", nil, true)
 	require.EqualError(t, err, "project name is required")
 }
 
@@ -60,9 +60,24 @@ func TestResolveProjectSelectionUsesSelector(t *testing.T) {
 		},
 	}
 
-	project, _, err := resolveProjectSelection("", groups)
+	project, _, err := resolveProjectSelection("", groups, true)
 	require.NoError(t, err)
 	require.Equal(t, "web", project)
+}
+
+func TestResolveProjectSelectionAllowsProjectWithoutWorktreesWhenNotRequired(t *testing.T) {
+	groups := []app.ProjectWorktrees{
+		{
+			Project:   config.Project{Name: "repo"},
+			Root:      "/root/repo",
+			Worktrees: nil,
+		},
+	}
+
+	project, group, err := resolveProjectSelection("repo", groups, false)
+	require.NoError(t, err)
+	require.Equal(t, "repo", project)
+	require.Equal(t, "repo", group.Project.Name)
 }
 
 func TestResolveWorktreeSelectionMatchesFlag(t *testing.T) {

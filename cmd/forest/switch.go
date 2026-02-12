@@ -50,7 +50,7 @@ func newSwitchCommand(api appAPI) *cli.Command {
 				return err
 			}
 
-			project, group, err := resolveProjectSelection(projectName, groups)
+			project, group, err := resolveProjectSelection(projectName, groups, true)
 			if err != nil {
 				return handleSwitchSelectionError(err)
 			}
@@ -80,7 +80,7 @@ func handleSwitchSelectionError(err error) error {
 	return err
 }
 
-func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees) (string, app.ProjectWorktrees, error) {
+func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees, requireWorktrees bool) (string, app.ProjectWorktrees, error) {
 	projectName = strings.TrimSpace(projectName)
 	if projectName != "" {
 		group, ok := findProjectGroup(groups, projectName)
@@ -90,7 +90,7 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees) 
 		if group.Missing {
 			return "", app.ProjectWorktrees{}, fmt.Errorf("project %q is not initialized", projectName)
 		}
-		if len(group.Worktrees) == 0 {
+		if requireWorktrees && len(group.Worktrees) == 0 {
 			return "", app.ProjectWorktrees{}, fmt.Errorf("project %q has no worktrees", projectName)
 		}
 		return projectName, group, nil
@@ -100,11 +100,14 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees) 
 		return "", app.ProjectWorktrees{}, errors.New("project name is required")
 	}
 
-	projectOptions := buildProjectOptions(groups)
+	projectOptions := buildProjectOptions(groups, requireWorktrees)
 	if len(projectOptions) == 0 {
-		return "", app.ProjectWorktrees{}, errors.New("no initialized projects with worktrees found")
+		if requireWorktrees {
+			return "", app.ProjectWorktrees{}, errors.New("no initialized projects with worktrees found")
+		}
+		return "", app.ProjectWorktrees{}, errors.New("no initialized projects found")
 	}
-	selection, err := selectOption("Switch worktree", "Type to filter projects...", projectOptions, tui.WithOutput(os.Stderr))
+	selection, err := selectOption("Select project", "Type to filter projects...", projectOptions, tui.WithOutput(os.Stderr))
 	if err != nil {
 		return "", app.ProjectWorktrees{}, err
 	}
@@ -176,10 +179,13 @@ func findProjectGroup(groups []app.ProjectWorktrees, projectName string) (app.Pr
 	return app.ProjectWorktrees{}, false
 }
 
-func buildProjectOptions(groups []app.ProjectWorktrees) []tui.SelectOption {
+func buildProjectOptions(groups []app.ProjectWorktrees, requireWorktrees bool) []tui.SelectOption {
 	options := make([]tui.SelectOption, 0, len(groups))
 	for _, group := range groups {
-		if group.Missing || len(group.Worktrees) == 0 {
+		if group.Missing {
+			continue
+		}
+		if requireWorktrees && len(group.Worktrees) == 0 {
 			continue
 		}
 		options = append(options, tui.SelectOption{
