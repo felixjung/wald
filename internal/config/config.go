@@ -19,8 +19,14 @@ const (
 
 // Config defines the forest configuration file schema.
 type Config struct {
-	WorktreeRoot string    `toml:"worktree_root"`
-	Projects     []Project `toml:"projects"`
+	WorktreeRoot string       `toml:"worktree_root"`
+	Hooks        *GlobalHooks `toml:"hooks,omitempty"`
+	Projects     []Project    `toml:"projects"`
+}
+
+// GlobalHooks describes configurable shell hooks for global command lifecycle events.
+type GlobalHooks struct {
+	PostSwitch map[string]string `toml:"post-switch,omitempty"`
 }
 
 // Project describes a configured project.
@@ -34,9 +40,9 @@ type Project struct {
 
 // ProjectHooks describes configurable shell hooks for project lifecycle commands.
 type ProjectHooks struct {
-	PostAdd    []string `toml:"post_add,omitempty"`
-	PreRemove  []string `toml:"pre_remove,omitempty"`
-	PostRemove []string `toml:"post_remove,omitempty"`
+	PostAdd    map[string]string `toml:"post-add,omitempty"`
+	PreRemove  map[string]string `toml:"pre-remove,omitempty"`
+	PostRemove map[string]string `toml:"post-remove,omitempty"`
 }
 
 // Load reads the config from disk and validates it.
@@ -92,6 +98,11 @@ func (c *Config) validate() error {
 	if strings.TrimSpace(c.WorktreeRoot) == "" {
 		return errors.New("config worktree_root is required")
 	}
+	if c.Hooks != nil {
+		if err := validateHookCommands("global", "post-switch", c.Hooks.PostSwitch); err != nil {
+			return err
+		}
+	}
 	for _, project := range c.Projects {
 		if project.Name == "" {
 			return errors.New("project name is required")
@@ -106,13 +117,14 @@ func (c *Config) validate() error {
 			return fmt.Errorf("project %q default_branch is required", project.Name)
 		}
 		if project.Hooks != nil {
-			if err := validateHookCommands(project.Name, "post_add", project.Hooks.PostAdd); err != nil {
+			scope := fmt.Sprintf("project %q", project.Name)
+			if err := validateHookCommands(scope, "post-add", project.Hooks.PostAdd); err != nil {
 				return err
 			}
-			if err := validateHookCommands(project.Name, "pre_remove", project.Hooks.PreRemove); err != nil {
+			if err := validateHookCommands(scope, "pre-remove", project.Hooks.PreRemove); err != nil {
 				return err
 			}
-			if err := validateHookCommands(project.Name, "post_remove", project.Hooks.PostRemove); err != nil {
+			if err := validateHookCommands(scope, "post-remove", project.Hooks.PostRemove); err != nil {
 				return err
 			}
 		}
@@ -142,6 +154,9 @@ func (c *Config) normalize(homeDir string) error {
 		return err
 	}
 	c.WorktreeRoot = root
+	if c.Hooks != nil {
+		c.Hooks.PostSwitch = trimHookCommands(c.Hooks.PostSwitch)
+	}
 	for i := range c.Projects {
 		project := &c.Projects[i]
 		project.Name = strings.TrimSpace(project.Name)
@@ -211,17 +226,25 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func trimHookCommands(commands []string) []string {
-	for i := range commands {
-		commands[i] = strings.TrimSpace(commands[i])
+func trimHookCommands(commands map[string]string) map[string]string {
+	for name, command := range commands {
+		trimmedName := strings.TrimSpace(name)
+		trimmedCommand := strings.TrimSpace(command)
+		if trimmedName != name {
+			delete(commands, name)
+		}
+		commands[trimmedName] = trimmedCommand
 	}
 	return commands
 }
 
-func validateHookCommands(projectName, hookName string, commands []string) error {
-	for i, command := range commands {
+func validateHookCommands(scope, hookName string, commands map[string]string) error {
+	for name, command := range commands {
+		if strings.TrimSpace(name) == "" {
+			return fmt.Errorf("%s hook %s name is required", scope, hookName)
+		}
 		if strings.TrimSpace(command) == "" {
-			return fmt.Errorf("project %q hook %s command %d is required", projectName, hookName, i+1)
+			return fmt.Errorf("%s hook %s %q command is required", scope, hookName, name)
 		}
 	}
 	return nil

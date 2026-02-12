@@ -60,7 +60,7 @@ func TestSwitchUsesWorkingDirOverride(t *testing.T) {
 	application, err := New(Deps{Runner: &fakeRunner{}, Stdout: &bytes.Buffer{}}, cfg)
 	require.NoError(t, err)
 
-	target, err := application.SwitchTarget("repo", "feature", "custom")
+	target, err := application.SwitchTarget(context.Background(), "repo", "feature", "custom")
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(worktreePath, "custom"), target)
 }
@@ -86,7 +86,7 @@ func TestSwitchRejectsAbsoluteWorkingDirOverride(t *testing.T) {
 	application, err := New(Deps{Runner: &fakeRunner{}, Stdout: &bytes.Buffer{}}, cfg)
 	require.NoError(t, err)
 
-	_, err = application.SwitchTarget("repo", "feature", "/tmp")
+	_, err = application.SwitchTarget(context.Background(), "repo", "feature", "/tmp")
 	require.EqualError(t, err, "working-dir must be relative: /tmp")
 }
 
@@ -108,6 +108,46 @@ func TestSwitchReturnsMissingWorktreeError(t *testing.T) {
 	application, err := New(Deps{Runner: &fakeRunner{}, Stdout: &bytes.Buffer{}}, cfg)
 	require.NoError(t, err)
 
-	_, err = application.SwitchTarget("repo", "feature", "")
+	_, err = application.SwitchTarget(context.Background(), "repo", "feature", "")
 	require.EqualError(t, err, "worktree path does not exist: "+filepath.Join(root, "repo", "feature"))
+}
+
+func TestSwitchRunsGlobalPostSwitchHooks(t *testing.T) {
+	root := t.TempDir()
+	projectRoot := filepath.Join(root, "repo")
+	worktreePath := filepath.Join(projectRoot, "feature")
+	targetPath := filepath.Join(worktreePath, "apps/repo")
+	require.NoError(t, os.MkdirAll(targetPath, 0o755))
+
+	cfg := &config.Config{
+		WorktreeRoot: root,
+		Hooks: &config.GlobalHooks{
+			PostSwitch: map[string]string{
+				"set-title": "echo {{project}} {{worktree}} {{repo}} {{default_branch}} {{project_workdir}} {{worktree_path}} {{target_path}}",
+			},
+		},
+		Projects: []config.Project{
+			{
+				Name:          "repo",
+				Repo:          "github.com/felixjung/mono",
+				Workdir:       "apps/repo",
+				DefaultBranch: "main",
+			},
+		},
+	}
+
+	runner := &fakeRunner{}
+	application, err := New(Deps{Runner: runner, Stdout: &bytes.Buffer{}}, cfg)
+	require.NoError(t, err)
+
+	target, err := application.SwitchTarget(context.Background(), "repo", "feature", "")
+	require.NoError(t, err)
+	require.Equal(t, targetPath, target)
+	require.Equal(t, []runnerCall{
+		{
+			Dir:  targetPath,
+			Name: "sh",
+			Args: []string{"-c", "echo repo feature github.com/felixjung/mono main apps/repo " + worktreePath + " " + targetPath},
+		},
+	}, runner.calls)
 }

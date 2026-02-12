@@ -31,8 +31,8 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 				Workdir:       "apps/repo",
 				DefaultBranch: "main",
 				Hooks: &config.ProjectHooks{
-					PreRemove:  []string{"echo before remove"},
-					PostRemove: []string{"echo after remove"},
+					PreRemove:  map[string]string{"pre": "echo {{project}} {{worktree}} {{worktree_path}} {{target_path}}"},
+					PostRemove: map[string]string{"post": "echo {{project}} {{worktree}} {{target_path}}"},
 				},
 			},
 		},
@@ -48,7 +48,7 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 		{
 			Dir:  filepath.Join(worktreePath, "apps/repo"),
 			Name: "sh",
-			Args: []string{"-c", "echo before remove"},
+			Args: []string{"-c", "echo repo feature " + worktreePath + " " + filepath.Join(worktreePath, "apps/repo")},
 		},
 		{
 			Dir:  gitDir,
@@ -58,7 +58,7 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 		{
 			Dir:  filepath.Join(gitDir, "apps/repo"),
 			Name: "sh",
-			Args: []string{"-c", "echo after remove"},
+			Args: []string{"-c", "echo repo feature " + filepath.Join(gitDir, "apps/repo")},
 		},
 	}, runner.calls)
 }
@@ -81,7 +81,7 @@ func TestRemoveStopsWhenPreRemoveHookFails(t *testing.T) {
 				Workdir:       ".",
 				DefaultBranch: "main",
 				Hooks: &config.ProjectHooks{
-					PreRemove: []string{"echo before remove"},
+					PreRemove: map[string]string{"pre": "echo before remove"},
 				},
 			},
 		},
@@ -96,7 +96,7 @@ func TestRemoveStopsWhenPreRemoveHookFails(t *testing.T) {
 	require.NoError(t, err)
 
 	err = application.Remove(context.Background(), projectName, "feature", nil)
-	require.EqualError(t, err, "pre_remove hook command 1 failed: pre failed")
+	require.EqualError(t, err, `pre-remove hook "pre" failed: pre failed`)
 	require.Len(t, runner.calls, 1)
 }
 
@@ -118,8 +118,8 @@ func TestRemoveReturnsPostRemoveHookError(t *testing.T) {
 				Workdir:       ".",
 				DefaultBranch: "main",
 				Hooks: &config.ProjectHooks{
-					PreRemove:  []string{"echo before remove"},
-					PostRemove: []string{"echo after remove"},
+					PreRemove:  map[string]string{"pre": "echo before remove"},
+					PostRemove: map[string]string{"post": "echo after remove"},
 				},
 			},
 		},
@@ -134,6 +134,6 @@ func TestRemoveReturnsPostRemoveHookError(t *testing.T) {
 	require.NoError(t, err)
 
 	err = application.Remove(context.Background(), projectName, "feature", nil)
-	require.EqualError(t, err, "post_remove hook command 1 failed: post failed")
+	require.EqualError(t, err, `post-remove hook "post" failed: post failed`)
 	require.Len(t, runner.calls, 3)
 }

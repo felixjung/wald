@@ -33,7 +33,8 @@ func (a *App) Remove(ctx context.Context, projectName, worktree string, extraArg
 	}
 	if project.Hooks != nil {
 		worktreeWorkdirPath := workdirPath(worktreePath, project.Workdir)
-		if err := hooks.RunAll(ctx, a.deps.Runner, worktreeWorkdirPath, "pre_remove", project.Hooks.PreRemove); err != nil {
+		vars := hookVars(project, worktree, worktreePath, worktreeWorkdirPath)
+		if err := hooks.RunAll(ctx, a.deps.Runner, worktreeWorkdirPath, "pre-remove", project.Hooks.PreRemove, vars); err != nil {
 			return err
 		}
 	}
@@ -42,7 +43,8 @@ func (a *App) Remove(ctx context.Context, projectName, worktree string, extraArg
 	}
 	if project.Hooks != nil {
 		defaultBranchWorkdir := workdirPath(gitDir, project.Workdir)
-		if err := hooks.RunAll(ctx, a.deps.Runner, defaultBranchWorkdir, "post_remove", project.Hooks.PostRemove); err != nil {
+		vars := hookVars(project, worktree, worktreePath, defaultBranchWorkdir)
+		if err := hooks.RunAll(ctx, a.deps.Runner, defaultBranchWorkdir, "post-remove", project.Hooks.PostRemove, vars); err != nil {
 			return err
 		}
 	}

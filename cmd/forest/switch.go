@@ -48,7 +48,7 @@ func newSwitchCommand(api appAPI) *cli.Command {
 				return handleSwitchSelectionError(err)
 			}
 
-			target, err := api.SwitchTarget(project, worktree, workingDirOverride)
+			target, err := api.SwitchTarget(ctx, project, worktree, workingDirOverride)
 			if err != nil {
 				return err
 			}

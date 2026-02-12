@@ -29,7 +29,10 @@ func TestAddRunsPostAddHooks(t *testing.T) {
 				Workdir:       "apps/repo",
 				DefaultBranch: "main",
 				Hooks: &config.ProjectHooks{
-					PostAdd: []string{"npm ci", "cp .env.example .env"},
+					PostAdd: map[string]string{
+						"01_title": "echo {{project}} {{worktree}} {{repo}} {{default_branch}} {{project_workdir}} {{worktree_path}} {{target_path}}",
+						"02_copy":  "cp .env.example .env",
+					},
 				},
 			},
 		},
@@ -53,7 +56,7 @@ func TestAddRunsPostAddHooks(t *testing.T) {
 		{
 			Dir:  workdirPath,
 			Name: "sh",
-			Args: []string{"-c", "npm ci"},
+			Args: []string{"-c", "echo repo feature github.com/felixjung/mono main apps/repo " + worktreePath + " " + workdirPath},
 		},
 		{
 			Dir:  workdirPath,
@@ -80,7 +83,7 @@ func TestAddReturnsPostAddHookError(t *testing.T) {
 				Workdir:       ".",
 				DefaultBranch: "main",
 				Hooks: &config.ProjectHooks{
-					PostAdd: []string{"npm ci"},
+					PostAdd: map[string]string{"hook": "npm ci"},
 				},
 			},
 		},
@@ -96,7 +99,7 @@ func TestAddReturnsPostAddHookError(t *testing.T) {
 	require.NoError(t, err)
 
 	err = application.Add(context.Background(), projectName, "feature", nil)
-	require.EqualError(t, err, "post_add hook command 1 failed: hook failed")
+	require.EqualError(t, err, `post-add hook "hook" failed: hook failed`)
 	require.Len(t, runner.calls, 2)
 	require.Empty(t, stdout.String())
 }
