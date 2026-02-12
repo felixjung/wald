@@ -16,6 +16,7 @@ func newRootCommand(app appAPI) *cli.Command {
 		Commands: []*cli.Command{
 			newAddCommand(app),
 			newInitCommand(app),
+			newListCommand(app),
 			newRemoveCommand(app),
 			configcmd.NewCommand(configcmd.Deps{}),
 		},

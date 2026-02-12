@@ -37,6 +37,11 @@ type OSRunner struct {
 }
 
 func (r OSRunner) Run(ctx context.Context, dir, name string, args ...string) error {
+	_, err := r.RunOutput(ctx, dir, name, args...)
+	return err
+}
+
+func (r OSRunner) RunOutput(ctx context.Context, dir, name string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
 
@@ -55,7 +60,7 @@ func (r OSRunner) Run(ctx context.Context, dir, name string, args ...string) err
 	}
 
 	if err := cmd.Run(); err != nil {
-		return &CommandError{
+		return "", &CommandError{
 			Name:   name,
 			Args:   args,
 			Err:    err,
@@ -63,5 +68,5 @@ func (r OSRunner) Run(ctx context.Context, dir, name string, args ...string) err
 			Stderr: stderrBuf.String(),
 		}
 	}
-	return nil
+	return stdoutBuf.String(), nil
 }
