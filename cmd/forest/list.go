@@ -4,10 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/felixjung/forest/internal/app"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/urfave/cli/v3"
 )
 
 func newListCommand(api appAPI) *cli.Command {

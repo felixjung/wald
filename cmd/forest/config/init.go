@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	internalconfig "github.com/felixjung/forest/internal/config"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/urfave/cli/v3"
 )
 
 func newInitCommand(deps Deps) *cli.Command {
@@ -59,6 +58,9 @@ func newInitCommand(deps Deps) *cli.Command {
 				WorktreeRoot: root,
 				Projects:     []internalconfig.Project{},
 			})
+			if err != nil {
+				return fmt.Errorf("marshal config: %w", err)
+			}
 			if err = deps.WriteFile(xdgPath, content, 0o644); err != nil {
 				return fmt.Errorf("write config: %w", err)
 			}

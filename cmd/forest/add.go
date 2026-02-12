@@ -7,9 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/urfave/cli/v3"
 )
 
 func newAddCommand(app appAPI) *cli.Command {

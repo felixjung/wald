@@ -7,16 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/felixjung/forest/internal/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSwitchPrintsResolvedTarget(t *testing.T) {
 	root := t.TempDir()
 	projectRoot := filepath.Join(root, "repo")
 	worktreePath := filepath.Join(projectRoot, "feature")
-	targetPath := filepath.Join(worktreePath, "apps/repo")
+	targetPath := filepath.Join(worktreePath, "apps", "repo")
 	require.NoError(t, os.MkdirAll(targetPath, 0o755))
 
 	cfg := &config.Config{
@@ -116,7 +115,7 @@ func TestSwitchRunsGlobalPostSwitchHooks(t *testing.T) {
 	root := t.TempDir()
 	projectRoot := filepath.Join(root, "repo")
 	worktreePath := filepath.Join(projectRoot, "feature")
-	targetPath := filepath.Join(worktreePath, "apps/repo")
+	targetPath := filepath.Join(worktreePath, "apps", "repo")
 	require.NoError(t, os.MkdirAll(targetPath, 0o755))
 
 	cfg := &config.Config{

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/toml"
-
 	internalconfig "github.com/felixjung/forest/internal/config"
 )
 

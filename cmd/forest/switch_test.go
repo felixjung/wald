@@ -6,11 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/felixjung/forest/internal/app"
 	"github.com/felixjung/forest/internal/config"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveProjectSelectionWithFlag(t *testing.T) {
@@ -84,22 +83,22 @@ func TestInferProjectNameFromPathMatchesCurrentWorktree(t *testing.T) {
 	groups := []app.ProjectWorktrees{
 		{
 			Project: config.Project{Name: "repo"},
-			Root:    filepath.Join("/", "root", "repo"),
+			Root:    absPath("root", "repo"),
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
-				{Path: filepath.Join("/", "root", "repo", "feature", "abc"), Branch: "feature/abc"},
+				{Path: absPath("root", "repo", "main"), Branch: "main"},
+				{Path: absPath("root", "repo", "feature", "abc"), Branch: "feature/abc"},
 			},
 		},
 		{
 			Project: config.Project{Name: "web"},
-			Root:    filepath.Join("/", "root", "web"),
+			Root:    absPath("root", "web"),
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "web", "main"), Branch: "main"},
+				{Path: absPath("root", "web", "main"), Branch: "main"},
 			},
 		},
 	}
 
-	path := filepath.Join("/", "root", "repo", "feature", "abc", "apps", "repo")
+	path := absPath("root", "repo", "feature", "abc", "apps", "repo")
 	require.Equal(t, "repo", inferProjectNameFromPath(path, groups, true))
 }
 
@@ -107,37 +106,37 @@ func TestInferProjectNameFromPathReturnsEmptyWhenNoMatch(t *testing.T) {
 	groups := []app.ProjectWorktrees{
 		{
 			Project: config.Project{Name: "repo"},
-			Root:    filepath.Join("/", "root", "repo"),
+			Root:    absPath("root", "repo"),
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
+				{Path: absPath("root", "repo", "main"), Branch: "main"},
 			},
 		},
 	}
 
-	path := filepath.Join("/", "elsewhere")
-	require.Equal(t, "", inferProjectNameFromPath(path, groups, true))
+	path := absPath("elsewhere")
+	require.Empty(t, inferProjectNameFromPath(path, groups, true))
 }
 
 func TestInferProjectNameFromPathReturnsEmptyOnAmbiguousMatch(t *testing.T) {
 	groups := []app.ProjectWorktrees{
 		{
 			Project: config.Project{Name: "api"},
-			Root:    filepath.Join("/", "root", "api"),
+			Root:    absPath("root", "api"),
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "shared"), Branch: "main"},
+				{Path: absPath("root", "shared"), Branch: "main"},
 			},
 		},
 		{
 			Project: config.Project{Name: "web"},
-			Root:    filepath.Join("/", "root", "web"),
+			Root:    absPath("root", "web"),
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "shared", "nested"), Branch: "main"},
+				{Path: absPath("root", "shared", "nested"), Branch: "main"},
 			},
 		},
 	}
 
-	path := filepath.Join("/", "root", "shared", "nested", "apps", "web")
-	require.Equal(t, "", inferProjectNameFromPath(path, groups, true))
+	path := absPath("root", "shared", "nested", "apps", "web")
+	require.Empty(t, inferProjectNameFromPath(path, groups, true))
 }
 
 func TestInferProjectNameFromPathSkipsMissingOrEmptyProjectsWhenRequired(t *testing.T) {
@@ -146,7 +145,7 @@ func TestInferProjectNameFromPathSkipsMissingOrEmptyProjectsWhenRequired(t *test
 			Project: config.Project{Name: "missing"},
 			Missing: true,
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "missing", "main"), Branch: "main"},
+				{Path: absPath("root", "missing", "main"), Branch: "main"},
 			},
 		},
 		{
@@ -156,12 +155,12 @@ func TestInferProjectNameFromPathSkipsMissingOrEmptyProjectsWhenRequired(t *test
 		{
 			Project: config.Project{Name: "repo"},
 			Worktrees: []app.WorktreeInfo{
-				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
+				{Path: absPath("root", "repo", "main"), Branch: "main"},
 			},
 		},
 	}
 
-	path := filepath.Join("/", "root", "repo", "main")
+	path := absPath("root", "repo", "main")
 	require.Equal(t, "repo", inferProjectNameFromPath(path, groups, true))
 }
 
@@ -312,4 +311,9 @@ func withSwitchPrompt(fn func(string, []tui.Field, ...tui.Option) ([]tui.Field, 
 	return func() {
 		promptFields = original
 	}
+}
+
+func absPath(parts ...string) string {
+	allParts := append([]string{string(filepath.Separator)}, parts...)
+	return filepath.Join(allParts...)
 }

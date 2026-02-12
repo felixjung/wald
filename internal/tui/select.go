@@ -35,14 +35,14 @@ func (i selectItem) FilterValue() string {
 
 type selectModel struct {
 	list     list.Model
-	theme    Theme
+	theme    *Theme
 	selected SelectOption
 	hasValue bool
 	canceled bool
 	width    int
 }
 
-func newSelectModel(title, placeholder string, choices []SelectOption, theme Theme) selectModel {
+func newSelectModel(title, placeholder string, choices []SelectOption, theme *Theme) *selectModel {
 	items := make([]list.Item, 0, len(choices))
 	for _, choice := range choices {
 		items = append(items, selectItem{option: choice})
@@ -75,7 +75,7 @@ func newSelectModel(title, placeholder string, choices []SelectOption, theme The
 	listModel.FilterInput.TextStyle = theme.TextFocused
 	listModel.FilterInput.Cursor.Style = theme.TextFocused
 
-	model := selectModel{
+	model := &selectModel{
 		list:  listModel,
 		theme: theme,
 		width: 80,
@@ -84,11 +84,11 @@ func newSelectModel(title, placeholder string, choices []SelectOption, theme The
 	return model
 }
 
-func (m selectModel) Init() tea.Cmd {
+func (m *selectModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -113,7 +113,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m selectModel) View() string {
+func (m *selectModel) View() string {
 	frame := lipgloss.NewStyle().Padding(1, 2)
 	return frame.Render(m.list.View())
 }
@@ -149,7 +149,7 @@ func Select(title, placeholder string, choices []SelectOption, opts ...Option) (
 	if err != nil {
 		return SelectOption{}, err
 	}
-	finalModel, ok := result.(selectModel)
+	finalModel, ok := result.(*selectModel)
 	if !ok {
 		return SelectOption{}, errors.New("unexpected select model")
 	}

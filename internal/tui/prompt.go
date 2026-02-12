@@ -25,14 +25,14 @@ type Field struct {
 type options struct {
 	input  *os.File
 	output io.Writer
-	theme  Theme
+	theme  *Theme
 }
 
 // Option customizes prompt behavior.
 type Option func(*options)
 
 // WithTheme overrides the prompt theme.
-func WithTheme(theme Theme) Option {
+func WithTheme(theme *Theme) Option {
 	return func(o *options) {
 		o.theme = theme
 	}
@@ -75,7 +75,7 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 		if err != nil {
 			return nil, err
 		}
-		finalModel, ok := result.(fieldModel)
+		finalModel, ok := result.(*fieldModel)
 		if !ok {
 			return nil, errors.New("unexpected prompt model")
 		}

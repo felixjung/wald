@@ -65,7 +65,9 @@ Use `config.Load(path string)` to load configs. Do not load a single project in 
 - Use `github.com/stretchr/testify` assertions.
 - Run tests with `go test ./...` (do not override `GOCACHE`).
 - Linting is configured in `.golangci.yml` (version 2 format).
-- Prefer internal tests for unexported functions (`*_internal_test.go`).
+- Use internal tests for unexported functions (`*_internal_test.go`).
+- When you're done with changes run `make fmt` and `make lint`, in that order.
+  Don't run `go fmt` or `golangci-lint` directly.
 
 ## Makefile
 

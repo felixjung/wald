@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/felixjung/forest/internal/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddRunsPostAddHooks(t *testing.T) {
@@ -46,7 +45,8 @@ func TestAddRunsPostAddHooks(t *testing.T) {
 	require.NoError(t, application.Add(context.Background(), projectName, "feature", "", []string{"--", "--track"}))
 
 	worktreePath := filepath.Join(projectRoot, "feature")
-	workdirPath := filepath.Join(worktreePath, "apps/repo")
+	projectWorkdir := filepath.Join("apps", "repo")
+	workdirPath := filepath.Join(worktreePath, projectWorkdir)
 	require.Equal(t, []runnerCall{
 		{
 			Dir:  gitDir,
