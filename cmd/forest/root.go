@@ -19,6 +19,7 @@ func newRootCommand(app appAPI) *cli.Command {
 			newListCommand(app),
 			newRemoveCommand(app),
 			newSwitchCommand(app),
+			newVersionCommand(),
 			newShellCommand(),
 			configcmd.NewCommand(configcmd.Deps{}),
 		},

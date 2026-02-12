@@ -1,5 +1,10 @@
 .PHONY: test fmt lint build install download help
 
+VERSION ?= dev
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
+DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
+
 ## Help display.
 ## Pulls comments from beside commands and prints a nicely formatted
 ## display with the commands and their usage information.
@@ -19,7 +24,7 @@ lint: ## Run golangci-lint
 
 build: download ## Build the program
 	@mkdir -p bin
-	@go build -o bin/forest github.com/felixjung/forest/cmd/forest
+	@go build -ldflags "$(LDFLAGS)" -o bin/forest github.com/felixjung/forest/cmd/forest
 
 install: build ## Build and install to /usr/local/bin (override with INSTALL_DIR=/path; may require sudo)
 	@set -e; \
