@@ -35,14 +35,14 @@ func (f *fakeRunner) Run(_ context.Context, dir, name string, args ...string) er
 func TestRunAllRunsCommandsInOrder(t *testing.T) {
 	runner := &fakeRunner{}
 
-	err := RunAll(context.Background(), runner, "/repo/worktree", "post_add", []string{
-		"npm ci",
-		"cp .env.example .env",
-	})
+	err := RunAll(context.Background(), runner, "/repo/worktree", "post-add", map[string]string{
+		"01_project":  "echo {{project}}",
+		"02_worktree": "echo {{ project }} {{worktree}}",
+	}, Vars{"project": "repo", "worktree": "feature"})
 	require.NoError(t, err)
 	require.Equal(t, []call{
-		{Dir: "/repo/worktree", Name: "sh", Args: []string{"-c", "npm ci"}},
-		{Dir: "/repo/worktree", Name: "sh", Args: []string{"-c", "cp .env.example .env"}},
+		{Dir: "/repo/worktree", Name: "sh", Args: []string{"-c", "echo repo"}},
+		{Dir: "/repo/worktree", Name: "sh", Args: []string{"-c", "echo repo feature"}},
 	}, runner.calls)
 }
 
@@ -53,22 +53,27 @@ func TestRunAllFailsFast(t *testing.T) {
 		},
 	}
 
-	err := RunAll(context.Background(), runner, "/repo/worktree", "post_add", []string{
-		"npm ci",
-		"cp .env.example .env",
-		"make bootstrap",
-	})
-	require.EqualError(t, err, "post_add hook command 2 failed: failed")
+	err := RunAll(context.Background(), runner, "/repo/worktree", "post-add", map[string]string{
+		"01_bootstrap": "npm ci",
+		"02_copy":      "cp .env.example .env",
+		"03_make":      "make bootstrap",
+	}, Vars{})
+	require.EqualError(t, err, "post-add hook \"02_copy\" failed: failed")
 	require.Len(t, runner.calls, 2)
 }
 
 func TestRunAllValidatesInputs(t *testing.T) {
-	err := RunAll(context.Background(), nil, "/repo/worktree", "post_add", []string{"npm ci"})
+	err := RunAll(context.Background(), nil, "/repo/worktree", "post-add", map[string]string{"hook": "npm ci"}, Vars{})
 	require.EqualError(t, err, "runner is required")
 
-	err = RunAll(context.Background(), &fakeRunner{}, "", "post_add", []string{"npm ci"})
+	err = RunAll(context.Background(), &fakeRunner{}, "", "post-add", map[string]string{"hook": "npm ci"}, Vars{})
 	require.EqualError(t, err, "hook directory is required")
 
-	err = RunAll(context.Background(), &fakeRunner{}, "/repo/worktree", "post_add", []string{" "})
-	require.EqualError(t, err, "post_add hook command 1 is required")
+	err = RunAll(context.Background(), &fakeRunner{}, "/repo/worktree", "post-add", map[string]string{"hook": " "}, Vars{})
+	require.EqualError(t, err, `post-add hook "hook" command is required`)
+}
+
+func TestRunAllReturnsErrorForUnknownTemplateVariable(t *testing.T) {
+	err := RunAll(context.Background(), &fakeRunner{}, "/repo/worktree", "post-add", map[string]string{"hook": "echo {{unknown}}"}, Vars{})
+	require.EqualError(t, err, `post-add hook "hook" template error: unknown template variable "unknown"`)
 }

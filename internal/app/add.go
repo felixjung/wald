@@ -38,7 +38,8 @@ func (a *App) Add(ctx context.Context, projectName, branch string, extraArgs []s
 
 	path := workdirPath(worktreePath, project.Workdir)
 	if project.Hooks != nil {
-		if err := hooks.RunAll(ctx, a.deps.Runner, path, "post_add", project.Hooks.PostAdd); err != nil {
+		vars := hookVars(project, branch, worktreePath, path)
+		if err := hooks.RunAll(ctx, a.deps.Runner, path, "post-add", project.Hooks.PostAdd, vars); err != nil {
 			return err
 		}
 	}

@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/hooks"
 )
 
 // Switch prints the resolved working directory for a project worktree.
-func (a *App) Switch(_ context.Context, projectName, worktree, workingDirOverride string) error {
-	path, err := a.SwitchTarget(projectName, worktree, workingDirOverride)
+func (a *App) Switch(ctx context.Context, projectName, worktree, workingDirOverride string) error {
+	path, err := a.SwitchTarget(ctx, projectName, worktree, workingDirOverride)
 	if err != nil {
 		return err
 	}
@@ -22,7 +23,7 @@ func (a *App) Switch(_ context.Context, projectName, worktree, workingDirOverrid
 }
 
 // SwitchTarget resolves the target working directory for project/worktree selection.
-func (a *App) SwitchTarget(projectName, worktree, workingDirOverride string) (string, error) {
+func (a *App) SwitchTarget(ctx context.Context, projectName, worktree, workingDirOverride string) (string, error) {
 	project, ok := a.cfg.FindProject(projectName)
 	if !ok {
 		return "", fmt.Errorf("project %q not found", projectName)
@@ -59,6 +60,13 @@ func (a *App) SwitchTarget(projectName, worktree, workingDirOverride string) (st
 	}
 	if !targetInfo.IsDir() {
 		return "", fmt.Errorf("working directory is not a directory: %s", target)
+	}
+
+	if a.cfg.Hooks != nil {
+		vars := hookVars(project, worktree, worktreePath, target)
+		if err := hooks.RunAll(ctx, a.deps.Runner, target, "post-switch", a.cfg.Hooks.PostSwitch, vars); err != nil {
+			return "", err
+		}
 	}
 	return target, nil
 }

@@ -18,7 +18,7 @@ type appAPI interface {
 	Init(ctx context.Context) error
 	List(ctx context.Context) (string, []app.ProjectWorktrees, error)
 	Remove(ctx context.Context, projectName, branch string, extraArgs []string) error
-	SwitchTarget(projectName, worktree, workingDirOverride string) (string, error)
+	SwitchTarget(ctx context.Context, projectName, worktree, workingDirOverride string) (string, error)
 }
 
 func main() {

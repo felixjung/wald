@@ -25,6 +25,7 @@ repo = "github.com/felixjung/mono"
 	cfg, err := Load(configPath)
 	require.NoError(t, err)
 	require.Equal(t, filepath.FromSlash("/tmp/worktrees"), cfg.WorktreeRoot)
+	require.Nil(t, cfg.Hooks)
 
 	project, ok := cfg.FindProject("repo")
 	require.True(t, ok)

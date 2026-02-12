@@ -87,9 +87,31 @@ repo = "github.com/felixjung/mono"
 
 	cfg, err := loadFromPath(cfgPath, "/home/test")
 	require.NoError(t, err)
+	require.Nil(t, cfg.Hooks)
 	require.Equal(t, defaultWorkdir, cfg.Projects[0].Workdir)
 	require.Equal(t, defaultBranch, cfg.Projects[0].DefaultBranch)
 	require.Nil(t, cfg.Projects[0].Hooks)
+}
+
+func TestLoadFromPathWithGlobalHooks(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[hooks]
+[hooks.post-switch]
+my_hook = "  echo switched  "
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	cfg, err := loadFromPath(cfgPath, "/home/test")
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Hooks)
+	require.Equal(t, map[string]string{"my_hook": "echo switched"}, cfg.Hooks.PostSwitch)
 }
 
 func TestLoadFromPathWithHooks(t *testing.T) {
@@ -101,19 +123,23 @@ func TestLoadFromPathWithHooks(t *testing.T) {
 name = "repo"
 repo = "github.com/felixjung/mono"
 
-[projects.hooks]
-post_add = ["  npm ci  "]
-pre_remove = ["echo before remove"]
-post_remove = ["echo after remove"]
+[projects.hooks.post-add]
+bootstrap = "  npm ci  "
+
+[projects.hooks.pre-remove]
+before = "echo before remove"
+
+[projects.hooks.post-remove]
+after = "echo after remove"
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
 
 	cfg, err := loadFromPath(cfgPath, "/home/test")
 	require.NoError(t, err)
 	require.NotNil(t, cfg.Projects[0].Hooks)
-	require.Equal(t, []string{"npm ci"}, cfg.Projects[0].Hooks.PostAdd)
-	require.Equal(t, []string{"echo before remove"}, cfg.Projects[0].Hooks.PreRemove)
-	require.Equal(t, []string{"echo after remove"}, cfg.Projects[0].Hooks.PostRemove)
+	require.Equal(t, map[string]string{"bootstrap": "npm ci"}, cfg.Projects[0].Hooks.PostAdd)
+	require.Equal(t, map[string]string{"before": "echo before remove"}, cfg.Projects[0].Hooks.PreRemove)
+	require.Equal(t, map[string]string{"after": "echo after remove"}, cfg.Projects[0].Hooks.PostRemove)
 }
 
 func TestLoadFromPathRejectsEmptyHookCommand(t *testing.T) {
@@ -125,11 +151,30 @@ func TestLoadFromPathRejectsEmptyHookCommand(t *testing.T) {
 name = "repo"
 repo = "github.com/felixjung/mono"
 
-[projects.hooks]
-post_add = ["", "npm ci"]
+[projects.hooks.post-add]
+bad = ""
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
 
 	_, err := loadFromPath(cfgPath, "/home/test")
-	require.EqualError(t, err, `project "repo" hook post_add command 1 is required`)
+	require.EqualError(t, err, `project "repo" hook post-add "bad" command is required`)
+}
+
+func TestLoadFromPathRejectsEmptyGlobalHookCommand(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[hooks]
+[hooks.post-switch]
+my_hook = " "
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	_, err := loadFromPath(cfgPath, "/home/test")
+	require.EqualError(t, err, `global hook post-switch "my_hook" command is required`)
 }
