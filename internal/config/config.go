@@ -25,10 +25,18 @@ type Config struct {
 
 // Project describes a configured project.
 type Project struct {
-	Name          string `toml:"name"`
-	Repo          string `toml:"repo"`
-	Workdir       string `toml:"workdir,omitempty"`
-	DefaultBranch string `toml:"default_branch,omitempty"`
+	Name          string        `toml:"name"`
+	Repo          string        `toml:"repo"`
+	Workdir       string        `toml:"workdir,omitempty"`
+	DefaultBranch string        `toml:"default_branch,omitempty"`
+	Hooks         *ProjectHooks `toml:"hooks,omitempty"`
+}
+
+// ProjectHooks describes configurable shell hooks for project lifecycle commands.
+type ProjectHooks struct {
+	PostAdd    []string `toml:"post_add,omitempty"`
+	PreRemove  []string `toml:"pre_remove,omitempty"`
+	PostRemove []string `toml:"post_remove,omitempty"`
 }
 
 // Load reads the config from disk and validates it.
@@ -97,6 +105,17 @@ func (c *Config) validate() error {
 		if project.DefaultBranch == "" {
 			return fmt.Errorf("project %q default_branch is required", project.Name)
 		}
+		if project.Hooks != nil {
+			if err := validateHookCommands(project.Name, "post_add", project.Hooks.PostAdd); err != nil {
+				return err
+			}
+			if err := validateHookCommands(project.Name, "pre_remove", project.Hooks.PreRemove); err != nil {
+				return err
+			}
+			if err := validateHookCommands(project.Name, "post_remove", project.Hooks.PostRemove); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -134,6 +153,11 @@ func (c *Config) normalize(homeDir string) error {
 		}
 		if project.DefaultBranch == "" {
 			project.DefaultBranch = defaultBranch
+		}
+		if project.Hooks != nil {
+			project.Hooks.PostAdd = trimHookCommands(project.Hooks.PostAdd)
+			project.Hooks.PreRemove = trimHookCommands(project.Hooks.PreRemove)
+			project.Hooks.PostRemove = trimHookCommands(project.Hooks.PostRemove)
 		}
 	}
 	return nil
@@ -185,4 +209,20 @@ func repoDirName(repo string) string {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func trimHookCommands(commands []string) []string {
+	for i := range commands {
+		commands[i] = strings.TrimSpace(commands[i])
+	}
+	return commands
+}
+
+func validateHookCommands(projectName, hookName string, commands []string) error {
+	for i, command := range commands {
+		if strings.TrimSpace(command) == "" {
+			return fmt.Errorf("project %q hook %s command %d is required", projectName, hookName, i+1)
+		}
+	}
+	return nil
 }

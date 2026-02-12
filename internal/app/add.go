@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/hooks"
 	"github.com/felixjung/forest/internal/worktree"
 )
 
@@ -36,6 +37,11 @@ func (a *App) Add(ctx context.Context, projectName, branch string, extraArgs []s
 	}
 
 	path := workdirPath(worktreePath, project.Workdir)
+	if project.Hooks != nil {
+		if err := hooks.RunAll(ctx, a.deps.Runner, path, "post_add", project.Hooks.PostAdd); err != nil {
+			return err
+		}
+	}
 	_, err = fmt.Fprintln(a.deps.Stdout, path)
 	return err
 }

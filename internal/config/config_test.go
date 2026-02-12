@@ -31,6 +31,7 @@ repo = "github.com/felixjung/mono"
 	require.Equal(t, "github.com/felixjung/mono", project.Repo)
 	require.Equal(t, ".", project.Workdir)
 	require.Equal(t, "main", project.DefaultBranch)
+	require.Nil(t, project.Hooks)
 }
 
 func TestRepoPath(t *testing.T) {

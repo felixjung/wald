@@ -89,4 +89,47 @@ repo = "github.com/felixjung/mono"
 	require.NoError(t, err)
 	require.Equal(t, defaultWorkdir, cfg.Projects[0].Workdir)
 	require.Equal(t, defaultBranch, cfg.Projects[0].DefaultBranch)
+	require.Nil(t, cfg.Projects[0].Hooks)
+}
+
+func TestLoadFromPathWithHooks(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+
+[projects.hooks]
+post_add = ["  npm ci  "]
+pre_remove = ["echo before remove"]
+post_remove = ["echo after remove"]
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	cfg, err := loadFromPath(cfgPath, "/home/test")
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Projects[0].Hooks)
+	require.Equal(t, []string{"npm ci"}, cfg.Projects[0].Hooks.PostAdd)
+	require.Equal(t, []string{"echo before remove"}, cfg.Projects[0].Hooks.PreRemove)
+	require.Equal(t, []string{"echo after remove"}, cfg.Projects[0].Hooks.PostRemove)
+}
+
+func TestLoadFromPathRejectsEmptyHookCommand(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+
+[projects.hooks]
+post_add = ["", "npm ci"]
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	_, err := loadFromPath(cfgPath, "/home/test")
+	require.EqualError(t, err, `project "repo" hook post_add command 1 is required`)
 }
