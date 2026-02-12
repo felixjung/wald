@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/felixjung/forest/internal/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRemoveRunsPreAndPostHooks(t *testing.T) {
@@ -19,6 +18,7 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 	projectRoot := filepath.Join(root, projectName)
 	gitDir := filepath.Join(projectRoot, "main")
 	worktreePath := filepath.Join(projectRoot, "feature")
+	projectWorkdir := filepath.Join("apps", "repo")
 	require.NoError(t, os.MkdirAll(filepath.Join(gitDir, ".git"), 0o755))
 	require.NoError(t, os.MkdirAll(worktreePath, 0o755))
 
@@ -46,9 +46,9 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 
 	require.Equal(t, []runnerCall{
 		{
-			Dir:  filepath.Join(worktreePath, "apps/repo"),
+			Dir:  filepath.Join(worktreePath, projectWorkdir),
 			Name: "sh",
-			Args: []string{"-c", "echo repo feature " + worktreePath + " " + filepath.Join(worktreePath, "apps/repo")},
+			Args: []string{"-c", "echo repo feature " + worktreePath + " " + filepath.Join(worktreePath, projectWorkdir)},
 		},
 		{
 			Dir:  gitDir,
@@ -56,9 +56,9 @@ func TestRemoveRunsPreAndPostHooks(t *testing.T) {
 			Args: []string{"worktree", "remove", "--force", "../feature"},
 		},
 		{
-			Dir:  filepath.Join(gitDir, "apps/repo"),
+			Dir:  filepath.Join(gitDir, projectWorkdir),
 			Name: "sh",
-			Args: []string{"-c", "echo repo feature " + filepath.Join(gitDir, "apps/repo")},
+			Args: []string{"-c", "echo repo feature " + filepath.Join(gitDir, projectWorkdir)},
 		},
 	}, runner.calls)
 }

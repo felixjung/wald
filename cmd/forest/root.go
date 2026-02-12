@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/urfave/cli/v3"
-
 	configcmd "github.com/felixjung/forest/cmd/forest/config"
+	"github.com/urfave/cli/v3"
 )
 
 func newRootCommand(app appAPI) *cli.Command {

@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	internalconfig "github.com/felixjung/forest/internal/config"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/urfave/cli/v3"
 )
 
 func newAddCommand(deps Deps) *cli.Command {

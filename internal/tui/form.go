@@ -16,13 +16,13 @@ type fieldModel struct {
 	err            error
 	canceled       bool
 	width          int
-	theme          Theme
+	theme          *Theme
 	defaultValue   string
 	displayDefault string
 	showDefault    bool
 }
 
-func newFieldModel(title string, field Field, theme Theme) fieldModel {
+func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
 	input := textinput.New()
 	input.Prompt = "> "
 	input.Placeholder = field.Placeholder
@@ -41,7 +41,7 @@ func newFieldModel(title string, field Field, theme Theme) fieldModel {
 		showDefault = true
 	}
 
-	model := fieldModel{
+	model := &fieldModel{
 		title:          title,
 		field:          field,
 		input:          input,
@@ -56,11 +56,11 @@ func newFieldModel(title string, field Field, theme Theme) fieldModel {
 	return model
 }
 
-func (m fieldModel) Init() tea.Cmd {
+func (m *fieldModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -96,8 +96,8 @@ func (m fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m fieldModel) View() string {
-	var sections []string
+func (m *fieldModel) View() string {
+	sections := make([]string, 0, 6)
 	if m.title != "" {
 		sections = append(sections, m.theme.Title.Render(m.title))
 	}
@@ -110,15 +110,17 @@ func (m fieldModel) View() string {
 	if m.field.Required {
 		label = label + " " + m.theme.Required.Render("*")
 	}
-	sections = append(sections, labelStyle.Render(label))
-	sections = append(sections, m.input.View())
+	sections = append(sections, labelStyle.Render(label), m.input.View())
 
 	if m.err != nil {
 		sections = append(sections, m.theme.Error.Render(m.err.Error()))
 	}
 
-	sections = append(sections, m.theme.Help.Render("enter to continue | esc to cancel"))
-	sections = append(sections, m.theme.Help.Render("press enter on empty input to accept the default in parentheses"))
+	sections = append(
+		sections,
+		m.theme.Help.Render("enter to continue | esc to cancel"),
+		m.theme.Help.Render("press enter on empty input to accept the default in parentheses"),
+	)
 
 	content := strings.Join(sections, "\n\n")
 	frame := lipgloss.NewStyle().Padding(1, 2)

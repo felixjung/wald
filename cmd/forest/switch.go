@@ -9,10 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	"github.com/felixjung/forest/internal/app"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -179,7 +178,7 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees, 
 	return selection.ID, group, nil
 }
 
-func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, create bool) (string, bool, error) {
+func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, create bool) (selectedWorktree string, createWorktree bool, err error) {
 	worktreeOptions := buildWorktreeOptions(group)
 	worktreeName = strings.TrimSpace(worktreeName)
 

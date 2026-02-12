@@ -5,11 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/felixjung/forest/internal/app"
 	"github.com/felixjung/forest/internal/config"
 	"github.com/felixjung/forest/internal/tui"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveRemoveSelectionInfersProjectAndSelectsWorktree(t *testing.T) {

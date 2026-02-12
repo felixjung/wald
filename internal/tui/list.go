@@ -27,12 +27,12 @@ type listModel struct {
 	title    string
 	root     string
 	projects []ListProject
-	theme    Theme
+	theme    *Theme
 	width    int
 }
 
-func newListModel(title, root string, projects []ListProject, theme Theme) listModel {
-	return listModel{
+func newListModel(title, root string, projects []ListProject, theme *Theme) *listModel {
+	return &listModel{
 		title:    title,
 		root:     root,
 		projects: projects,
@@ -41,20 +41,19 @@ func newListModel(title, root string, projects []ListProject, theme Theme) listM
 	}
 }
 
-func (m listModel) Init() tea.Cmd {
+func (m *listModel) Init() tea.Cmd {
 	return tea.Quit
 }
 
-func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
+func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if windowSizeMsg, ok := msg.(tea.WindowSizeMsg); ok {
+		m.width = windowSizeMsg.Width
 	}
 	return m, nil
 }
 
-func (m listModel) View() string {
-	var sections []string
+func (m *listModel) View() string {
+	sections := make([]string, 0, 2+len(m.projects)*3)
 	if m.title != "" {
 		sections = append(sections, m.theme.Title.Render(m.title))
 	}
@@ -66,11 +65,12 @@ func (m listModel) View() string {
 		header := m.theme.Label.Render(project.Name)
 		sections = append(sections, header)
 
-		if project.Missing {
+		switch {
+		case project.Missing:
 			sections = append(sections, "  "+m.theme.Error.Render("not initialized"))
-		} else if len(project.Worktrees) == 0 {
+		case len(project.Worktrees) == 0:
 			sections = append(sections, "  "+m.theme.Help.Render("no worktrees"))
-		} else {
+		default:
 			for _, worktree := range project.Worktrees {
 				sections = append(sections, renderWorktreeLine(m.theme, worktree))
 			}
@@ -86,7 +86,7 @@ func (m listModel) View() string {
 	return frame.Render(content)
 }
 
-func renderWorktreeLine(theme Theme, worktree ListWorktree) string {
+func renderWorktreeLine(theme *Theme, worktree ListWorktree) string {
 	label := worktree.Label
 	var tags []string
 	if worktree.Branch != "" && worktree.Branch != worktree.Label {

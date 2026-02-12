@@ -18,14 +18,14 @@ type Theme struct {
 }
 
 // DefaultTheme returns a theme that adapts to light and dark terminals.
-func DefaultTheme() Theme {
+func DefaultTheme() *Theme {
 	accent := lipgloss.AdaptiveColor{Light: "#2563EB", Dark: "#60A5FA"}
 	text := lipgloss.AdaptiveColor{Light: "#0F172A", Dark: "#E2E8F0"}
 	label := lipgloss.AdaptiveColor{Light: "#334155", Dark: "#94A3B8"}
 	muted := lipgloss.AdaptiveColor{Light: "#64748B", Dark: "#94A3B8"}
 	errorColor := lipgloss.AdaptiveColor{Light: "#DC2626", Dark: "#F87171"}
 
-	return Theme{
+	return &Theme{
 		Title:         lipgloss.NewStyle().Bold(true).Foreground(text),
 		Label:         lipgloss.NewStyle().Foreground(label),
 		LabelFocused:  lipgloss.NewStyle().Bold(true).Foreground(accent),
