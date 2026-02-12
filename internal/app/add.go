@@ -13,8 +13,8 @@ import (
 )
 
 // Add adds a worktree for the given project.
-func (a *App) Add(ctx context.Context, projectName, branch string, extraArgs []string) (err error) {
-	path, err := a.AddTarget(ctx, projectName, branch, extraArgs)
+func (a *App) Add(ctx context.Context, projectName, branch, startPoint string, extraArgs []string) (err error) {
+	path, err := a.AddTarget(ctx, projectName, branch, startPoint, extraArgs)
 	if err != nil {
 		return err
 	}
@@ -23,7 +23,7 @@ func (a *App) Add(ctx context.Context, projectName, branch string, extraArgs []s
 }
 
 // AddTarget creates a worktree and returns the resolved project workdir path.
-func (a *App) AddTarget(ctx context.Context, projectName, branch string, extraArgs []string) (string, error) {
+func (a *App) AddTarget(ctx context.Context, projectName, branch, startPoint string, extraArgs []string) (string, error) {
 	project, ok := a.cfg.FindProject(projectName)
 	if !ok {
 		return "", fmt.Errorf("project %q not found", projectName)
@@ -41,7 +41,7 @@ func (a *App) AddTarget(ctx context.Context, projectName, branch string, extraAr
 	if err != nil {
 		return "", fmt.Errorf("resolve worktree path: %w", err)
 	}
-	_, err = worktree.Add(ctx, a.deps.Runner, gitDir, relativePath, extraArgs)
+	_, err = worktree.Add(ctx, a.deps.Runner, gitDir, relativePath, startPoint, extraArgs)
 	if err != nil {
 		return "", err
 	}
