@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 
 	"github.com/urfave/cli/v3"
@@ -50,20 +49,4 @@ func buildListWorktrees(group app.ProjectWorktrees) []tui.ListWorktree {
 		})
 	}
 	return worktrees
-}
-
-func displayWorktreeLabel(root, path string) string {
-	rel, err := filepath.Rel(root, path)
-	if err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
-		return rel
-	}
-	return path
-}
-
-func isDefaultWorktree(root, defaultBranch, path string) bool {
-	if defaultBranch == "" {
-		return false
-	}
-	defaultPath := filepath.Join(root, defaultBranch)
-	return filepath.Clean(defaultPath) == filepath.Clean(path)
 }

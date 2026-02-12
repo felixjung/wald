@@ -18,6 +18,7 @@ type appAPI interface {
 	Init(ctx context.Context) error
 	List(ctx context.Context) (string, []app.ProjectWorktrees, error)
 	Remove(ctx context.Context, projectName, branch string, extraArgs []string) error
+	SwitchTarget(projectName, worktree, workingDirOverride string) (string, error)
 }
 
 func main() {
@@ -56,7 +57,7 @@ func main() {
 
 func loadConfigIfNeeded(args []string) (*config.Config, error) {
 	command := firstNonFlagArg(args)
-	if command == "config" || command == "" {
+	if command == "config" || command == "shell" || command == "" {
 		return &config.Config{}, nil
 	}
 	homeDir, err := os.UserHomeDir()
