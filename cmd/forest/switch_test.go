@@ -75,9 +75,10 @@ func TestResolveWorktreeSelectionMatchesFlag(t *testing.T) {
 		},
 	}
 
-	worktree, err := resolveWorktreeSelection(group, "feature/one")
+	worktree, create, err := resolveWorktreeSelection(group, "feature/one", false)
 	require.NoError(t, err)
 	require.Equal(t, filepath.FromSlash("feature/one"), worktree)
+	require.False(t, create)
 }
 
 func TestResolveWorktreeSelectionInvalidFlagWithoutTTY(t *testing.T) {
@@ -90,7 +91,7 @@ func TestResolveWorktreeSelectionInvalidFlagWithoutTTY(t *testing.T) {
 		},
 	}
 
-	_, err := resolveWorktreeSelection(group, "missing")
+	_, _, err := resolveWorktreeSelection(group, "missing", false)
 	require.EqualError(t, err, `worktree "missing" not found in project "repo"`)
 }
 
@@ -108,9 +109,10 @@ func TestResolveWorktreeSelectionUsesSelectorWhenMissing(t *testing.T) {
 		},
 	}
 
-	worktree, err := resolveWorktreeSelection(group, "")
+	worktree, create, err := resolveWorktreeSelection(group, "", false)
 	require.NoError(t, err)
 	require.Equal(t, "feature", worktree)
+	require.False(t, create)
 }
 
 func TestResolveWorktreeSelectionPropagatesSelectorError(t *testing.T) {
@@ -126,8 +128,53 @@ func TestResolveWorktreeSelectionPropagatesSelectorError(t *testing.T) {
 		},
 	}
 
-	_, err := resolveWorktreeSelection(group, "")
+	_, _, err := resolveWorktreeSelection(group, "", false)
 	require.EqualError(t, err, "select failed")
+}
+
+func TestResolveWorktreeSelectionCreateUsesProvidedValueWhenMissing(t *testing.T) {
+	group := app.ProjectWorktrees{
+		Project: config.Project{Name: "repo"},
+		Root:    "/root/repo",
+		Worktrees: []app.WorktreeInfo{
+			{Path: "/root/repo/main", Branch: "main"},
+		},
+	}
+
+	worktree, create, err := resolveWorktreeSelection(group, "feature/new", true)
+	require.NoError(t, err)
+	require.Equal(t, "feature/new", worktree)
+	require.True(t, create)
+}
+
+func TestResolveWorktreeSelectionCreatePromptsWhenMissing(t *testing.T) {
+	defer withSwitchTTY(true)()
+	defer withSwitchPrompt(func(_ string, _ []tui.Field, _ ...tui.Option) ([]tui.Field, error) {
+		return []tui.Field{{ID: "worktree", Value: "feature/new"}}, nil
+	})()
+	group := app.ProjectWorktrees{
+		Project: config.Project{Name: "repo"},
+		Root:    "/root/repo",
+		Worktrees: []app.WorktreeInfo{
+			{Path: "/root/repo/main", Branch: "main"},
+		},
+	}
+
+	worktree, create, err := resolveWorktreeSelection(group, "", true)
+	require.NoError(t, err)
+	require.Equal(t, "feature/new", worktree)
+	require.True(t, create)
+}
+
+func TestResolveWorktreeSelectionCreateRequiresWorktreeWithoutTTY(t *testing.T) {
+	defer withSwitchTTY(false)()
+	group := app.ProjectWorktrees{
+		Project: config.Project{Name: "repo"},
+		Root:    "/root/repo",
+	}
+
+	_, _, err := resolveWorktreeSelection(group, "", true)
+	require.EqualError(t, err, "worktree is required")
 }
 
 func TestWriteSwitchTargetToFile(t *testing.T) {
@@ -156,5 +203,13 @@ func withSwitchSelector(fn func(string, string, []tui.SelectOption, ...tui.Optio
 	selectOption = fn
 	return func() {
 		selectOption = original
+	}
+}
+
+func withSwitchPrompt(fn func(string, []tui.Field, ...tui.Option) ([]tui.Field, error)) func() {
+	original := promptFields
+	promptFields = fn
+	return func() {
+		promptFields = original
 	}
 }

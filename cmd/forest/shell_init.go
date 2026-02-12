@@ -47,7 +47,7 @@ func shellInitScript(shellName string) (string, error) {
 }
 
 const fishShellInitScript = `function forest
-    if test (count $argv) -gt 0; and test "$argv[1]" = "switch"
+    if test (count $argv) -gt 0; and contains -- "$argv[1]" switch add
         set -l __forest_target_file (mktemp -t forest-switch.XXXXXX)
         if test -z "$__forest_target_file"
             return 1
@@ -70,7 +70,7 @@ const fishShellInitScript = `function forest
 end`
 
 const zshShellInitScript = `forest() {
-    if [[ "$1" == "switch" ]]; then
+    if [[ "$1" == "switch" || "$1" == "add" ]]; then
         local __forest_target
         local __forest_target_file
         __forest_target_file="$(mktemp -t forest-switch.XXXXXX)" || return $?
@@ -89,7 +89,7 @@ const zshShellInitScript = `forest() {
 }`
 
 const bashShellInitScript = `forest() {
-    if [[ "$1" == "switch" ]]; then
+    if [[ "$1" == "switch" || "$1" == "add" ]]; then
         local __forest_target
         local __forest_target_file
         __forest_target_file="$(mktemp -t forest-switch.XXXXXX)" || return $?

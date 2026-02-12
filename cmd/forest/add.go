@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,6 +19,7 @@ func newAddCommand(app appAPI) *cli.Command {
 		ArgsUsage: "<path> [-- <git worktree add args>]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name"},
+			&cli.BoolFlag{Name: "no-switch", Usage: "do not switch to the new worktree"},
 		},
 		Arguments: []cli.Argument{
 			&cli.StringArg{Name: "path", UsageText: "<worktree path>"},
@@ -26,6 +28,7 @@ func newAddCommand(app appAPI) *cli.Command {
 			project := strings.TrimSpace(cmd.String("project"))
 			path := strings.TrimSpace(cmd.StringArg("path"))
 			extraArgs := cmd.Args().Slice()
+			noSwitch := cmd.Bool("no-switch")
 
 			if project == "" || path == "" {
 				if !tui.IsTerminal(os.Stdin) {
@@ -56,7 +59,19 @@ func newAddCommand(app appAPI) *cli.Command {
 			if len(extraArgs) > 0 {
 				extraArgs = append([]string{"--"}, extraArgs...)
 			}
-			return app.Add(ctx, project, path, extraArgs)
+			target, err := app.AddTarget(ctx, project, path, extraArgs)
+			if err != nil {
+				return err
+			}
+			if noSwitch {
+				_, err = fmt.Fprintln(os.Stdout, target)
+				return err
+			}
+			switchTarget, err := app.SwitchTarget(ctx, project, path, "")
+			if err != nil {
+				return err
+			}
+			return writeSwitchTarget(switchTarget)
 		},
 	}
 }
