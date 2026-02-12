@@ -49,6 +49,9 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			if err != nil {
 				return err
 			}
+			if projectName == "" {
+				projectName = inferProjectNameFromCurrentWorktree(groups, true)
+			}
 
 			project, group, err := resolveProjectSelection(projectName, groups, true)
 			if err != nil {
@@ -78,6 +81,64 @@ func handleSwitchSelectionError(err error) error {
 		return cli.Exit("prompt canceled", 1)
 	}
 	return err
+}
+
+func inferProjectNameFromCurrentWorktree(groups []app.ProjectWorktrees, requireWorktrees bool) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	absCWD, err := filepath.Abs(cwd)
+	if err != nil {
+		return ""
+	}
+	return inferProjectNameFromPath(absCWD, groups, requireWorktrees)
+}
+
+func inferProjectNameFromPath(path string, groups []app.ProjectWorktrees, requireWorktrees bool) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	path = filepath.Clean(path)
+
+	matches := make(map[string]struct{})
+	for _, group := range groups {
+		if group.Missing {
+			continue
+		}
+		if requireWorktrees && len(group.Worktrees) == 0 {
+			continue
+		}
+		for _, worktree := range group.Worktrees {
+			if isPathWithin(worktree.Path, path) {
+				matches[group.Project.Name] = struct{}{}
+				break
+			}
+		}
+	}
+
+	if len(matches) != 1 {
+		return ""
+	}
+	for projectName := range matches {
+		return projectName
+	}
+	return ""
+}
+
+func isPathWithin(root, path string) bool {
+	root = strings.TrimSpace(root)
+	path = strings.TrimSpace(path)
+	if root == "" || path == "" {
+		return false
+	}
+
+	rel, err := filepath.Rel(filepath.Clean(root), filepath.Clean(path))
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees, requireWorktrees bool) (string, app.ProjectWorktrees, error) {

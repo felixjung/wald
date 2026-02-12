@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v3"
+
+	"github.com/felixjung/forest/internal/app"
 )
 
 func newRemoveCommand(app appAPI) *cli.Command {
@@ -28,17 +30,10 @@ func newRemoveCommand(app appAPI) *cli.Command {
 				if err != nil {
 					return err
 				}
-				selectedProject, group, err := resolveProjectSelection(project, groups, true)
+				project, worktree, err = resolveRemoveSelection(project, worktree, groups)
 				if err != nil {
 					return handleSwitchSelectionError(err)
 				}
-				project = selectedProject
-
-				selectedWorktree, _, err := resolveWorktreeSelection(group, worktree, false)
-				if err != nil {
-					return handleSwitchSelectionError(err)
-				}
-				worktree = selectedWorktree
 			}
 
 			if project == "" {
@@ -53,4 +48,28 @@ func newRemoveCommand(app appAPI) *cli.Command {
 			return app.Remove(ctx, project, worktree, extraArgs)
 		},
 	}
+}
+
+func resolveRemoveSelection(project, worktree string, groups []app.ProjectWorktrees) (string, string, error) {
+	project = strings.TrimSpace(project)
+	worktree = strings.TrimSpace(worktree)
+
+	if project == "" {
+		project = inferProjectNameFromCurrentWorktree(groups, true)
+	}
+	if project == "" || worktree == "" {
+		selectedProject, group, err := resolveProjectSelection(project, groups, true)
+		if err != nil {
+			return "", "", err
+		}
+		project = selectedProject
+
+		selectedWorktree, _, err := resolveWorktreeSelection(group, worktree, false)
+		if err != nil {
+			return "", "", err
+		}
+		worktree = selectedWorktree
+	}
+
+	return project, worktree, nil
 }

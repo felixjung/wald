@@ -80,6 +80,91 @@ func TestResolveProjectSelectionAllowsProjectWithoutWorktreesWhenNotRequired(t *
 	require.Equal(t, "repo", group.Project.Name)
 }
 
+func TestInferProjectNameFromPathMatchesCurrentWorktree(t *testing.T) {
+	groups := []app.ProjectWorktrees{
+		{
+			Project: config.Project{Name: "repo"},
+			Root:    filepath.Join("/", "root", "repo"),
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
+				{Path: filepath.Join("/", "root", "repo", "feature", "abc"), Branch: "feature/abc"},
+			},
+		},
+		{
+			Project: config.Project{Name: "web"},
+			Root:    filepath.Join("/", "root", "web"),
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "web", "main"), Branch: "main"},
+			},
+		},
+	}
+
+	path := filepath.Join("/", "root", "repo", "feature", "abc", "apps", "repo")
+	require.Equal(t, "repo", inferProjectNameFromPath(path, groups, true))
+}
+
+func TestInferProjectNameFromPathReturnsEmptyWhenNoMatch(t *testing.T) {
+	groups := []app.ProjectWorktrees{
+		{
+			Project: config.Project{Name: "repo"},
+			Root:    filepath.Join("/", "root", "repo"),
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
+			},
+		},
+	}
+
+	path := filepath.Join("/", "elsewhere")
+	require.Equal(t, "", inferProjectNameFromPath(path, groups, true))
+}
+
+func TestInferProjectNameFromPathReturnsEmptyOnAmbiguousMatch(t *testing.T) {
+	groups := []app.ProjectWorktrees{
+		{
+			Project: config.Project{Name: "api"},
+			Root:    filepath.Join("/", "root", "api"),
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "shared"), Branch: "main"},
+			},
+		},
+		{
+			Project: config.Project{Name: "web"},
+			Root:    filepath.Join("/", "root", "web"),
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "shared", "nested"), Branch: "main"},
+			},
+		},
+	}
+
+	path := filepath.Join("/", "root", "shared", "nested", "apps", "web")
+	require.Equal(t, "", inferProjectNameFromPath(path, groups, true))
+}
+
+func TestInferProjectNameFromPathSkipsMissingOrEmptyProjectsWhenRequired(t *testing.T) {
+	groups := []app.ProjectWorktrees{
+		{
+			Project: config.Project{Name: "missing"},
+			Missing: true,
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "missing", "main"), Branch: "main"},
+			},
+		},
+		{
+			Project:   config.Project{Name: "empty"},
+			Worktrees: nil,
+		},
+		{
+			Project: config.Project{Name: "repo"},
+			Worktrees: []app.WorktreeInfo{
+				{Path: filepath.Join("/", "root", "repo", "main"), Branch: "main"},
+			},
+		},
+	}
+
+	path := filepath.Join("/", "root", "repo", "main")
+	require.Equal(t, "repo", inferProjectNameFromPath(path, groups, true))
+}
+
 func TestResolveWorktreeSelectionMatchesFlag(t *testing.T) {
 	group := app.ProjectWorktrees{
 		Project: config.Project{Name: "repo", DefaultBranch: "main"},
