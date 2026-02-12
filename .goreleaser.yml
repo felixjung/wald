@@ -1,0 +1,50 @@
+version: 2
+
+project_name: forest
+
+builds:
+  - id: forest
+    main: ./cmd/forest
+    binary: forest
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .FullCommit }} -X main.date={{ .Date }}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: forest
+    ids:
+      - forest
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{- .Os }}_{{- if eq .Arch "amd64" }}x86_64{{ else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: true
+
+brews:
+  - name: forest
+    repository:
+      owner: felixjung
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    directory: Formula
+    homepage: https://github.com/felixjung/forest
+    description: Manage git worktrees for configured projects
+    install: |
+      bin.install "forest"
+    test: |
+      assert_match "Manage git worktrees", shell_output("#{bin}/forest --help")
