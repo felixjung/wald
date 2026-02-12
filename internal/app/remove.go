@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/forest/internal/hooks"
 	wt "github.com/felixjung/forest/internal/worktree"
 )
 
@@ -30,8 +31,20 @@ func (a *App) Remove(ctx context.Context, projectName, worktree string, extraArg
 	if err != nil {
 		return fmt.Errorf("resolve worktree path: %w", err)
 	}
+	if project.Hooks != nil {
+		worktreeWorkdirPath := workdirPath(worktreePath, project.Workdir)
+		if err := hooks.RunAll(ctx, a.deps.Runner, worktreeWorkdirPath, "pre_remove", project.Hooks.PreRemove); err != nil {
+			return err
+		}
+	}
 	if _, err := wt.Remove(ctx, a.deps.Runner, gitDir, relativePath, extraArgs); err != nil {
 		return err
+	}
+	if project.Hooks != nil {
+		defaultBranchWorkdir := workdirPath(gitDir, project.Workdir)
+		if err := hooks.RunAll(ctx, a.deps.Runner, defaultBranchWorkdir, "post_remove", project.Hooks.PostRemove); err != nil {
+			return err
+		}
 	}
 	return nil
 }
