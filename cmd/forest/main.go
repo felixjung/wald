@@ -14,7 +14,7 @@ import (
 )
 
 type appAPI interface {
-	Add(ctx context.Context, projectName, branch string, extraArgs []string) error
+	AddTarget(ctx context.Context, projectName, branch string, extraArgs []string) (string, error)
 	Init(ctx context.Context) error
 	List(ctx context.Context) (string, []app.ProjectWorktrees, error)
 	Remove(ctx context.Context, projectName, branch string, extraArgs []string) error

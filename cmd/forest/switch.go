@@ -18,6 +18,7 @@ import (
 var (
 	isTerminal   = tui.IsTerminal
 	selectOption = tui.Select
+	promptFields = tui.Prompt
 )
 
 func newSwitchCommand(api appAPI) *cli.Command {
@@ -28,11 +29,13 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name"},
 			&cli.StringFlag{Name: "worktree", Aliases: []string{"w"}, Usage: "worktree name"},
 			&cli.StringFlag{Name: "working-dir", Usage: "override project workdir for this switch"},
+			&cli.BoolFlag{Name: "create", Usage: "create and switch to a new worktree when missing"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			projectName := strings.TrimSpace(cmd.String("project"))
 			worktreeName := strings.TrimSpace(cmd.String("worktree"))
 			workingDirOverride := strings.TrimSpace(cmd.String("working-dir"))
+			create := cmd.Bool("create")
 
 			_, groups, err := api.List(ctx)
 			if err != nil {
@@ -43,9 +46,14 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			if err != nil {
 				return handleSwitchSelectionError(err)
 			}
-			worktree, err := resolveWorktreeSelection(group, worktreeName)
+			worktree, createWorktree, err := resolveWorktreeSelection(group, worktreeName, create)
 			if err != nil {
 				return handleSwitchSelectionError(err)
+			}
+			if createWorktree {
+				if _, err := api.AddTarget(ctx, project, worktree, nil); err != nil {
+					return err
+				}
 			}
 
 			target, err := api.SwitchTarget(ctx, project, worktree, workingDirOverride)
@@ -99,36 +107,56 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees) 
 	return selection.ID, group, nil
 }
 
-func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string) (string, error) {
+func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, create bool) (string, bool, error) {
 	worktreeOptions := buildWorktreeOptions(group)
-	if len(worktreeOptions) == 0 {
-		return "", fmt.Errorf("project %q has no worktrees", group.Project.Name)
-	}
-
 	worktreeName = strings.TrimSpace(worktreeName)
+
 	if worktreeName != "" {
 		matched, ambiguous := matchWorktreeOption(worktreeOptions, worktreeName)
 		if matched != "" {
-			return matched, nil
+			return matched, false, nil
+		}
+		if create {
+			return worktreeName, true, nil
 		}
 		if !isTerminal(os.Stdin) {
 			if ambiguous {
-				return "", fmt.Errorf("worktree %q is ambiguous for project %q", worktreeName, group.Project.Name)
+				return "", false, fmt.Errorf("worktree %q is ambiguous for project %q", worktreeName, group.Project.Name)
 			}
-			return "", fmt.Errorf("worktree %q not found in project %q", worktreeName, group.Project.Name)
+			return "", false, fmt.Errorf("worktree %q not found in project %q", worktreeName, group.Project.Name)
 		}
 	}
 
+	if create {
+		if !isTerminal(os.Stdin) {
+			return "", false, errors.New("worktree is required")
+		}
+		fields, err := promptFields("Create and switch worktree", []tui.Field{
+			{ID: "worktree", Label: "Worktree path", Value: worktreeName, Required: true},
+		}, tui.WithOutput(os.Stderr))
+		if err != nil {
+			return "", false, err
+		}
+		value := strings.TrimSpace(fieldValue(fields, "worktree"))
+		if value == "" {
+			return "", false, errors.New("worktree is required")
+		}
+		return value, true, nil
+	}
+
+	if len(worktreeOptions) == 0 {
+		return "", false, fmt.Errorf("project %q has no worktrees", group.Project.Name)
+	}
 	if !isTerminal(os.Stdin) {
-		return "", errors.New("worktree is required")
+		return "", false, errors.New("worktree is required")
 	}
 
 	title := fmt.Sprintf("Select worktree (%s)", group.Project.Name)
 	selection, err := selectOption(title, "Type to filter worktrees...", worktreeOptions, tui.WithOutput(os.Stderr))
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	return selection.ID, nil
+	return selection.ID, false, nil
 }
 
 func findProjectGroup(groups []app.ProjectWorktrees, projectName string) (app.ProjectWorktrees, bool) {
