@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -92,4 +93,84 @@ func TestResolveRemoveSelectionRequiresProjectWithoutTTYWhenPathUnknown(t *testi
 
 	_, _, err := resolveRemoveSelection("", "main", groups)
 	require.EqualError(t, err, "project name is required")
+}
+
+func TestWriteRemoveSwitchTargetSkipsWhenNoOutFile(t *testing.T) {
+	fake := &fakeRemoveApp{}
+
+	err := writeRemoveSwitchTarget(context.Background(), fake, "repo", "feature", nil)
+	require.NoError(t, err)
+	require.Zero(t, fake.listCalls)
+	require.Zero(t, fake.switchTargetCalls)
+}
+
+func TestWriteRemoveSwitchTargetWritesDefaultWorktreeTarget(t *testing.T) {
+	targetFile := filepath.Join(t.TempDir(), "target")
+	t.Setenv("FOREST_SWITCH_OUT_FILE", targetFile)
+
+	groups := []app.ProjectWorktrees{
+		{Project: config.Project{Name: "repo", DefaultBranch: "trunk"}},
+	}
+	fake := &fakeRemoveApp{
+		switchTarget: "/tmp/repo/trunk/apps/repo",
+	}
+
+	err := writeRemoveSwitchTarget(context.Background(), fake, "repo", "feature", groups)
+	require.NoError(t, err)
+	require.Equal(t, 1, fake.switchTargetCalls)
+	require.Equal(t, "repo", fake.switchTargetProject)
+	require.Equal(t, "trunk", fake.switchTargetWorktree)
+
+	content, readErr := os.ReadFile(targetFile)
+	require.NoError(t, readErr)
+	require.Equal(t, fake.switchTarget, string(content))
+}
+
+func TestWriteRemoveSwitchTargetSkipsWhenRemovingDefaultWorktree(t *testing.T) {
+	targetFile := filepath.Join(t.TempDir(), "target")
+	t.Setenv("FOREST_SWITCH_OUT_FILE", targetFile)
+
+	groups := []app.ProjectWorktrees{
+		{Project: config.Project{Name: "repo", DefaultBranch: "main"}},
+	}
+	fake := &fakeRemoveApp{}
+
+	err := writeRemoveSwitchTarget(context.Background(), fake, "repo", "main", groups)
+	require.NoError(t, err)
+	require.Zero(t, fake.switchTargetCalls)
+}
+
+type fakeRemoveApp struct {
+	groups               []app.ProjectWorktrees
+	listCalls            int
+	removeCalls          int
+	switchTarget         string
+	switchTargetCalls    int
+	switchTargetProject  string
+	switchTargetWorktree string
+}
+
+func (*fakeRemoveApp) AddTarget(context.Context, string, string, string, []string) (string, error) {
+	return "", nil
+}
+
+func (*fakeRemoveApp) Init(context.Context) error {
+	return nil
+}
+
+func (f *fakeRemoveApp) List(context.Context) (string, []app.ProjectWorktrees, error) {
+	f.listCalls++
+	return "", f.groups, nil
+}
+
+func (f *fakeRemoveApp) Remove(context.Context, string, string, []string) error {
+	f.removeCalls++
+	return nil
+}
+
+func (f *fakeRemoveApp) SwitchTarget(_ context.Context, projectName, worktree, _ string) (string, error) {
+	f.switchTargetCalls++
+	f.switchTargetProject = projectName
+	f.switchTargetWorktree = worktree
+	return f.switchTarget, nil
 }
