@@ -25,7 +25,6 @@ jobs:
           release-type: go
           package-name: forest
           include-component-in-tag: false
-          skip-github-release: true
 
       - name: Checkout repository
         if: ${{ steps.release.outputs.tag_name != '' }}
