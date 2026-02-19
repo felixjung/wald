@@ -1,4 +1,4 @@
-# AGENTS.md
+# Guidelines and Instructions
 
 This repository contains the `forest` Go CLI. Follow these guidelines when making changes.
 
@@ -78,3 +78,11 @@ Use `config.Load(path string)` to load configs. Do not load a single project in 
 
 - Keep functions small and focused; one command per file in `cmd/forest`.
 - Avoid exporting identifiers that are not used outside the package.
+
+## Pull Requests
+
+- Apply conventional commits to PR titles when opening PRs. We use
+  squash-commits for merging PRs, and this ensures we have conventional commits on
+  `main` after merging.
+- When committing on `main` use conventional commits.
+- When committing on other branches use plain descriptions as commit messages.
