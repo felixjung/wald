@@ -106,6 +106,7 @@ func TestWriteRemoveSwitchTargetSkipsWhenNoOutFile(t *testing.T) {
 
 func TestWriteRemoveSwitchTargetWritesDefaultWorktreeTarget(t *testing.T) {
 	targetFile := filepath.Join(t.TempDir(), "target")
+	require.NoError(t, os.WriteFile(targetFile, nil, 0o600))
 	t.Setenv("FOREST_SWITCH_OUT_FILE", targetFile)
 
 	groups := []app.ProjectWorktrees{

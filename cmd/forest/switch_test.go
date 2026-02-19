@@ -278,6 +278,7 @@ func TestResolveWorktreeSelectionCreateRequiresWorktreeWithoutTTY(t *testing.T) 
 
 func TestWriteSwitchTargetToFile(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "target")
+	require.NoError(t, os.WriteFile(file, nil, 0o600))
 	t.Setenv("FOREST_SWITCH_OUT_FILE", file)
 
 	require.NoError(t, writeSwitchTarget("/tmp/worktree"))
@@ -285,6 +286,27 @@ func TestWriteSwitchTargetToFile(t *testing.T) {
 	content, err := os.ReadFile(file)
 	require.NoError(t, err)
 	require.Equal(t, "/tmp/worktree", string(content))
+}
+
+func TestWriteSwitchTargetRejectsRelativeOutFile(t *testing.T) {
+	t.Setenv("FOREST_SWITCH_OUT_FILE", "target")
+
+	err := writeSwitchTarget("/tmp/worktree")
+	require.EqualError(t, err, "FOREST_SWITCH_OUT_FILE must be an absolute path")
+}
+
+func TestWriteSwitchTargetRejectsOutFileOutsideTempDir(t *testing.T) {
+	t.Setenv("FOREST_SWITCH_OUT_FILE", "/etc/passwd")
+
+	err := writeSwitchTarget("/tmp/worktree")
+	require.ErrorContains(t, err, "FOREST_SWITCH_OUT_FILE must be within")
+}
+
+func TestWriteSwitchTargetRejectsDirectoryOutFile(t *testing.T) {
+	t.Setenv("FOREST_SWITCH_OUT_FILE", t.TempDir())
+
+	err := writeSwitchTarget("/tmp/worktree")
+	require.EqualError(t, err, "FOREST_SWITCH_OUT_FILE must reference a regular file")
 }
 
 func withSwitchTTY(v bool) func() {

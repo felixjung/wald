@@ -322,13 +322,41 @@ func matchWorktreeOption(options []tui.SelectOption, value string) (string, bool
 }
 
 func writeSwitchTarget(target string) error {
-	outFile := strings.TrimSpace(os.Getenv("FOREST_SWITCH_OUT_FILE"))
+	outFile, err := resolveSwitchTargetFile()
+	if err != nil {
+		return err
+	}
 	if outFile != "" {
-		if err := os.WriteFile(outFile, []byte(target), 0o600); err != nil {
+		if err = os.WriteFile(outFile, []byte(target), 0o600); err != nil {
 			return fmt.Errorf("write switch target file: %w", err)
 		}
 		return nil
 	}
-	_, err := fmt.Fprintln(os.Stdout, target)
+	_, err = fmt.Fprintln(os.Stdout, target)
 	return err
+}
+
+func resolveSwitchTargetFile() (string, error) {
+	outFile := strings.TrimSpace(os.Getenv("FOREST_SWITCH_OUT_FILE"))
+	if outFile == "" {
+		return "", nil
+	}
+
+	outFile = filepath.Clean(outFile)
+	if !filepath.IsAbs(outFile) {
+		return "", errors.New("FOREST_SWITCH_OUT_FILE must be an absolute path")
+	}
+	if !isPathWithin(os.TempDir(), outFile) {
+		return "", fmt.Errorf("FOREST_SWITCH_OUT_FILE must be within %s", os.TempDir())
+	}
+
+	info, err := os.Lstat(outFile)
+	if err != nil {
+		return "", fmt.Errorf("stat switch target file: %w", err)
+	}
+	if !info.Mode().IsRegular() || (info.Mode()&os.ModeSymlink) != 0 {
+		return "", errors.New("FOREST_SWITCH_OUT_FILE must reference a regular file")
+	}
+
+	return outFile, nil
 }
