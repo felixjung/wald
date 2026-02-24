@@ -1,13 +1,13 @@
 # Guidelines and Instructions
 
-This repository contains the `forest` Go CLI. Follow these guidelines when making changes.
+This repository contains the `wald` Go CLI. Follow these guidelines when making changes.
 
 ## Project structure
 
-- `cmd/forest`: CLI entrypoints (urfave/cli v3).
+- `cmd/wald`: CLI entrypoints (urfave/cli v3).
   - One file per command (e.g. `add.go`, `remove.go`, `init.go`).
   - Root command in `root.go`; it wires subcommands.
-  - Config subcommands live in `cmd/forest/config` with their own `root.go` and `init.go`.
+  - Config subcommands live in `cmd/wald/config` with their own `root.go` and `init.go`.
 - `internal/app`: Business logic. App methods live in separate files per command.
 - `internal/config`: Config loading + defaults; TOML format.
 - `internal/worktree`: Thin wrapper around `git worktree`.
@@ -30,7 +30,7 @@ This repository contains the `forest` Go CLI. Follow these guidelines when makin
 
 ## Config format
 
-TOML (XDG-compliant location via constants in `cmd/forest/config/config.go`):
+TOML (XDG-compliant location via constants in `cmd/wald/config/config.go`):
 
 ```toml
 worktree_root = ""
@@ -72,11 +72,11 @@ Use `config.Load(path string)` to load configs. Do not load a single project in 
 ## Makefile
 
 - Targets are hidden with `@` (keep this style).
-- `build` should output `./bin/forest`.
+- `build` should output `./bin/wald`.
 
 ## General Go style
 
-- Keep functions small and focused; one command per file in `cmd/forest`.
+- Keep functions small and focused; one command per file in `cmd/wald`.
 - Avoid exporting identifiers that are not used outside the package.
 
 ## Pull Requests

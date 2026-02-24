@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/felixjung/forest/internal/config"
-	"github.com/felixjung/forest/internal/hooks"
-	"github.com/felixjung/forest/internal/worktree"
+	"github.com/felixjung/wald/internal/config"
+	"github.com/felixjung/wald/internal/hooks"
+	"github.com/felixjung/wald/internal/worktree"
 )
 
 // Add adds a worktree for the given project.

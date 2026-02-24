@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/felixjung/forest/internal/tui"
+	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
 

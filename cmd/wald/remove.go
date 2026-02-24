@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/felixjung/forest/internal/app"
+	"github.com/felixjung/wald/internal/app"
 	"github.com/urfave/cli/v3"
 )
 
@@ -81,7 +81,7 @@ func resolveRemoveSelection(project, worktree string, groups []app.ProjectWorktr
 }
 
 func writeRemoveSwitchTarget(ctx context.Context, app appAPI, project, worktree string, groups []app.ProjectWorktrees) error {
-	if strings.TrimSpace(os.Getenv("FOREST_SWITCH_OUT_FILE")) == "" {
+	if strings.TrimSpace(os.Getenv("WALD_SWITCH_OUT_FILE")) == "" {
 		return nil
 	}
 	if len(groups) == 0 {

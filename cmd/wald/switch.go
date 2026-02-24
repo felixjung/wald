@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/felixjung/forest/internal/app"
-	"github.com/felixjung/forest/internal/tui"
+	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
 
@@ -337,17 +337,17 @@ func writeSwitchTarget(target string) error {
 }
 
 func resolveSwitchTargetFile() (string, error) {
-	outFile := strings.TrimSpace(os.Getenv("FOREST_SWITCH_OUT_FILE"))
+	outFile := strings.TrimSpace(os.Getenv("WALD_SWITCH_OUT_FILE"))
 	if outFile == "" {
 		return "", nil
 	}
 
 	outFile = filepath.Clean(outFile)
 	if !filepath.IsAbs(outFile) {
-		return "", errors.New("FOREST_SWITCH_OUT_FILE must be an absolute path")
+		return "", errors.New("WALD_SWITCH_OUT_FILE must be an absolute path")
 	}
 	if !isPathWithin(os.TempDir(), outFile) {
-		return "", fmt.Errorf("FOREST_SWITCH_OUT_FILE must be within %s", os.TempDir())
+		return "", fmt.Errorf("WALD_SWITCH_OUT_FILE must be within %s", os.TempDir())
 	}
 
 	info, err := os.Lstat(outFile)
@@ -355,7 +355,7 @@ func resolveSwitchTargetFile() (string, error) {
 		return "", fmt.Errorf("stat switch target file: %w", err)
 	}
 	if !info.Mode().IsRegular() || (info.Mode()&os.ModeSymlink) != 0 {
-		return "", errors.New("FOREST_SWITCH_OUT_FILE must reference a regular file")
+		return "", errors.New("WALD_SWITCH_OUT_FILE must reference a regular file")
 	}
 
 	return outFile, nil

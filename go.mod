@@ -1,4 +1,4 @@
-module github.com/felixjung/forest
+module github.com/felixjung/wald
 
 go 1.25.3
 

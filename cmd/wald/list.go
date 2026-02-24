@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/felixjung/forest/internal/app"
-	"github.com/felixjung/forest/internal/tui"
+	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
 

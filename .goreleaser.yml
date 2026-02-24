@@ -1,11 +1,11 @@
 version: 2
 
-project_name: forest
+project_name: wald
 
 builds:
-  - id: forest
-    main: ./cmd/forest
-    binary: forest
+  - id: wald
+    main: ./cmd/wald
+    binary: wald
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -18,9 +18,9 @@ builds:
       - arm64
 
 archives:
-  - id: forest
+  - id: wald
     ids:
-      - forest
+      - wald
     formats:
       - tar.gz
     name_template: >-
@@ -33,7 +33,7 @@ changelog:
   disable: true
 
 brews:
-  - name: forest
+  - name: wald
     repository:
       owner: felixjung
       name: homebrew-tap
@@ -42,9 +42,9 @@ brews:
       name: github-actions[bot]
       email: 41898282+github-actions[bot]@users.noreply.github.com
     directory: Formula
-    homepage: https://github.com/felixjung/forest
+    homepage: https://github.com/felixjung/wald
     description: Manage git worktrees for configured projects
     install: |
-      bin.install "forest"
+      bin.install "wald"
     test: |
-      assert_match "Manage git worktrees", shell_output("#{bin}/forest --help")
+      assert_match "Manage git worktrees", shell_output("#{bin}/wald --help")

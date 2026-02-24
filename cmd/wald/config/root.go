@@ -42,7 +42,7 @@ func NewCommand(deps Deps) *cli.Command {
 
 	return &cli.Command{
 		Name:  "config",
-		Usage: "Manage forest configuration",
+		Usage: "Manage wald configuration",
 		Commands: []*cli.Command{
 			newAddCommand(deps),
 			newInitCommand(deps),

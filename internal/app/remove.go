@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/felixjung/forest/internal/config"
-	"github.com/felixjung/forest/internal/hooks"
-	wt "github.com/felixjung/forest/internal/worktree"
+	"github.com/felixjung/wald/internal/config"
+	"github.com/felixjung/wald/internal/hooks"
+	wt "github.com/felixjung/wald/internal/worktree"
 )
 
 // Remove removes a worktree for the given project.

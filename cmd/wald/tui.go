@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/felixjung/forest/internal/tui"
+	"github.com/felixjung/wald/internal/tui"
 )
 
 func fieldValue(fields []tui.Field, id string) string {

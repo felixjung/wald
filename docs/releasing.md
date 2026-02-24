@@ -1,4 +1,4 @@
-# Releasing forest
+# Releasing wald
 
 This repository uses Conventional Commits, release-please, and GoReleaser.
 
@@ -29,4 +29,4 @@ This repository uses Conventional Commits, release-please, and GoReleaser.
 ## Local verification
 
 - `make build` embeds local build metadata (`VERSION`, `COMMIT`, `DATE`).
-- `forest version` prints embedded metadata.
+- `wald version` prints embedded metadata.

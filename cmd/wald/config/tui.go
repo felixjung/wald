@@ -1,6 +1,6 @@
 package config
 
-import "github.com/felixjung/forest/internal/tui"
+import "github.com/felixjung/wald/internal/tui"
 
 func fieldValue(fields []tui.Field, id string) string {
 	for _, field := range fields {

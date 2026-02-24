@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixjung/forest/internal/config"
+	"github.com/felixjung/wald/internal/config"
 	"github.com/stretchr/testify/require"
 )
 

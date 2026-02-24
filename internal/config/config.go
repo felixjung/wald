@@ -17,7 +17,7 @@ const (
 	defaultBranch  = "main"
 )
 
-// Config defines the forest configuration file schema.
+// Config defines the wald configuration file schema.
 type Config struct {
 	WorktreeRoot string       `toml:"worktree_root"`
 	Hooks        *GlobalHooks `toml:"hooks,omitempty"`
@@ -178,14 +178,14 @@ func (c *Config) normalize(homeDir string) error {
 	return nil
 }
 
-// resolvePath picks the config file path based on XDG or ~/.forest.toml.
+// resolvePath picks the config file path based on XDG or ~/.wald.toml.
 func resolvePath(getenv func(string) string, homeDir string, exists func(string) bool) (string, error) {
 	xdg := getenv("XDG_CONFIG_HOME")
 	if xdg == "" {
 		xdg = filepath.Join(homeDir, ".config")
 	}
-	xdgPath := filepath.Join(xdg, "forest", "config.toml")
-	dotPath := filepath.Join(homeDir, ".forest.toml")
+	xdgPath := filepath.Join(xdg, "wald", "config.toml")
+	dotPath := filepath.Join(homeDir, ".wald.toml")
 
 	if exists(xdgPath) {
 		return xdgPath, nil

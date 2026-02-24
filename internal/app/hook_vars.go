@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/felixjung/forest/internal/config"
-	"github.com/felixjung/forest/internal/hooks"
+	"github.com/felixjung/wald/internal/config"
+	"github.com/felixjung/wald/internal/hooks"
 )
 
 func hookVars(project config.Project, worktree, worktreePath, targetPath string) hooks.Vars {

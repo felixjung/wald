@@ -26,5 +26,5 @@ func newVersionCommand() *cli.Command {
 }
 
 func renderVersion() string {
-	return fmt.Sprintf("forest %s (commit %s, built %s)", version, commit, date)
+	return fmt.Sprintf("wald %s (commit %s, built %s)", version, commit, date)
 }

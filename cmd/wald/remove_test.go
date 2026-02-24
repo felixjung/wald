@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/felixjung/forest/internal/app"
-	"github.com/felixjung/forest/internal/config"
-	"github.com/felixjung/forest/internal/tui"
+	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/config"
+	"github.com/felixjung/wald/internal/tui"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,7 +107,7 @@ func TestWriteRemoveSwitchTargetSkipsWhenNoOutFile(t *testing.T) {
 func TestWriteRemoveSwitchTargetWritesDefaultWorktreeTarget(t *testing.T) {
 	targetFile := filepath.Join(t.TempDir(), "target")
 	require.NoError(t, os.WriteFile(targetFile, nil, 0o600))
-	t.Setenv("FOREST_SWITCH_OUT_FILE", targetFile)
+	t.Setenv("WALD_SWITCH_OUT_FILE", targetFile)
 
 	groups := []app.ProjectWorktrees{
 		{Project: config.Project{Name: "repo", DefaultBranch: "trunk"}},
@@ -129,7 +129,7 @@ func TestWriteRemoveSwitchTargetWritesDefaultWorktreeTarget(t *testing.T) {
 
 func TestWriteRemoveSwitchTargetSkipsWhenRemovingDefaultWorktree(t *testing.T) {
 	targetFile := filepath.Join(t.TempDir(), "target")
-	t.Setenv("FOREST_SWITCH_OUT_FILE", targetFile)
+	t.Setenv("WALD_SWITCH_OUT_FILE", targetFile)
 
 	groups := []app.ProjectWorktrees{
 		{Project: config.Project{Name: "repo", DefaultBranch: "main"}},

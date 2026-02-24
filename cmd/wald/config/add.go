@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	internalconfig "github.com/felixjung/forest/internal/config"
-	"github.com/felixjung/forest/internal/tui"
+	internalconfig "github.com/felixjung/wald/internal/config"
+	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
 
 func newAddCommand(deps Deps) *cli.Command {
 	return &cli.Command{
 		Name:      "add",
-		Usage:     "Add a project to the forest config",
+		Usage:     "Add a project to the wald config",
 		ArgsUsage: "<name>",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "repo", Aliases: []string{"r"}, Usage: "git repository"},

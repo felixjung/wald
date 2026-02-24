@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/toml"
-	internalconfig "github.com/felixjung/forest/internal/config"
+	internalconfig "github.com/felixjung/wald/internal/config"
 )
 
 func marshalConfig(cfg *internalconfig.Config) ([]byte, error) {

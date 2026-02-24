@@ -15,11 +15,11 @@ func TestResolvePathPrefersXDG(t *testing.T) {
 	require.NoError(t, os.MkdirAll(home, 0o755))
 	require.NoError(t, os.MkdirAll(xdg, 0o755))
 
-	xdgPath := filepath.Join(xdg, "forest", "config.toml")
+	xdgPath := filepath.Join(xdg, "wald", "config.toml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(xdgPath), 0o755))
 	require.NoError(t, os.WriteFile(xdgPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
-	dotPath := filepath.Join(home, ".forest.toml")
+	dotPath := filepath.Join(home, ".wald.toml")
 	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
 	path, err := resolvePath(func(key string) string {
@@ -37,7 +37,7 @@ func TestResolvePathFallsBackToDotfile(t *testing.T) {
 	home := filepath.Join(temp, "home")
 	require.NoError(t, os.MkdirAll(home, 0o755))
 
-	dotPath := filepath.Join(home, ".forest.toml")
+	dotPath := filepath.Join(home, ".wald.toml")
 	require.NoError(t, os.WriteFile(dotPath, []byte("worktree_root = \"/tmp\"\nprojects = []\n"), 0o644))
 
 	path, err := resolvePath(func(string) string { return "" }, home, fileExists)
