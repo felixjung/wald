@@ -1,6 +1,8 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"charm.land/lipgloss/v2"
+)
 
 // Theme defines the styles used by the TUI prompt.
 type Theme struct {
@@ -17,13 +19,13 @@ type Theme struct {
 	Error         lipgloss.Style
 }
 
-// DefaultTheme returns a theme that adapts to light and dark terminals.
+// DefaultTheme returns the default TUI theme.
 func DefaultTheme() *Theme {
-	accent := lipgloss.AdaptiveColor{Light: "#2563EB", Dark: "#60A5FA"}
-	text := lipgloss.AdaptiveColor{Light: "#0F172A", Dark: "#E2E8F0"}
-	label := lipgloss.AdaptiveColor{Light: "#334155", Dark: "#94A3B8"}
-	muted := lipgloss.AdaptiveColor{Light: "#64748B", Dark: "#94A3B8"}
-	errorColor := lipgloss.AdaptiveColor{Light: "#DC2626", Dark: "#F87171"}
+	accent := lipgloss.Color("#60A5FA")
+	text := lipgloss.Color("#E2E8F0")
+	label := lipgloss.Color("#94A3B8")
+	muted := lipgloss.Color("#94A3B8")
+	errorColor := lipgloss.Color("#F87171")
 
 	return &Theme{
 		Title:         lipgloss.NewStyle().Bold(true).Foreground(text),

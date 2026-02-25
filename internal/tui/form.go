@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 type fieldModel struct {
@@ -28,7 +28,7 @@ func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
 	input.Placeholder = field.Placeholder
 	input.SetValue("")
 	input.CharLimit = 0
-	input.Width = 48
+	input.SetWidth(48)
 
 	defaultValue := field.Value
 	if defaultValue == "" {
@@ -52,12 +52,11 @@ func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
 		showDefault:    showDefault,
 	}
 	model.applyStyles()
-	model.input.Focus()
 	return model
 }
 
 func (m *fieldModel) Init() tea.Cmd {
-	return textinput.Blink
+	return m.input.Focus()
 }
 
 func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -65,7 +64,7 @@ func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.resizeInput()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if msg.String() != "enter" && msg.String() != "ctrl+c" && msg.String() != "esc" {
 			m.err = nil
 		}
@@ -96,7 +95,7 @@ func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *fieldModel) View() string {
+func (m *fieldModel) View() tea.View {
 	sections := make([]string, 0, 6)
 	if m.title != "" {
 		sections = append(sections, m.theme.Title.Render(m.title))
@@ -124,7 +123,9 @@ func (m *fieldModel) View() string {
 
 	content := strings.Join(sections, "\n\n")
 	frame := lipgloss.NewStyle().Padding(1, 2)
-	return frame.Render(content)
+	view := tea.NewView(frame.Render(content))
+	view.AltScreen = true
+	return view
 }
 
 func (m *fieldModel) resizeInput() {
@@ -135,12 +136,16 @@ func (m *fieldModel) resizeInput() {
 	if width > 72 {
 		width = 72
 	}
-	m.input.Width = width
+	m.input.SetWidth(width)
 }
 
 func (m *fieldModel) applyStyles() {
-	m.input.PromptStyle = m.theme.PromptFocused
-	m.input.TextStyle = m.theme.TextFocused
-	m.input.PlaceholderStyle = m.theme.Placeholder
-	m.input.Cursor.Style = m.theme.TextFocused
+	styles := m.input.Styles()
+	styles.Focused.Prompt = m.theme.PromptFocused
+	styles.Focused.Text = m.theme.TextFocused
+	styles.Focused.Placeholder = m.theme.Placeholder
+	styles.Blurred.Prompt = m.theme.Prompt
+	styles.Blurred.Text = m.theme.Text
+	styles.Blurred.Placeholder = m.theme.Placeholder
+	m.input.SetStyles(styles)
 }

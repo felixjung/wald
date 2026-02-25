@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // SelectOption is a selectable item in the interactive list.
@@ -60,8 +60,6 @@ func newSelectModel(title, placeholder string, choices []SelectOption, theme *Th
 	listModel := list.New(items, delegate, 0, 0)
 	listModel.Title = title
 	listModel.Styles.Title = theme.Title
-	listModel.Styles.FilterPrompt = theme.PromptFocused
-	listModel.Styles.FilterCursor = theme.TextFocused
 	listModel.Styles.DefaultFilterCharacterMatch = theme.PromptFocused
 	listModel.Styles.HelpStyle = theme.Help
 	listModel.Styles.NoItems = theme.Help
@@ -71,9 +69,16 @@ func newSelectModel(title, placeholder string, choices []SelectOption, theme *Th
 	listModel.SetShowTitle(true)
 	listModel.FilterInput.Prompt = "> "
 	listModel.FilterInput.Placeholder = placeholder
-	listModel.FilterInput.PlaceholderStyle = theme.Placeholder
-	listModel.FilterInput.TextStyle = theme.TextFocused
-	listModel.FilterInput.Cursor.Style = theme.TextFocused
+
+	filterStyles := listModel.FilterInput.Styles()
+	filterStyles.Focused.Prompt = theme.PromptFocused
+	filterStyles.Focused.Text = theme.TextFocused
+	filterStyles.Focused.Placeholder = theme.Placeholder
+	filterStyles.Blurred.Prompt = theme.Prompt
+	filterStyles.Blurred.Text = theme.Text
+	filterStyles.Blurred.Placeholder = theme.Placeholder
+	listModel.FilterInput.SetStyles(filterStyles)
+	listModel.Styles.Filter = filterStyles
 
 	model := &selectModel{
 		list:  listModel,
@@ -93,7 +98,7 @@ func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.resize()
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			m.canceled = true
@@ -113,9 +118,11 @@ func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *selectModel) View() string {
+func (m *selectModel) View() tea.View {
 	frame := lipgloss.NewStyle().Padding(1, 2)
-	return frame.Render(m.list.View())
+	view := tea.NewView(frame.Render(m.list.View()))
+	view.AltScreen = true
+	return view
 }
 
 func (m *selectModel) resize() {
@@ -143,7 +150,6 @@ func Select(title, placeholder string, choices []SelectOption, opts ...Option) (
 		model,
 		tea.WithInput(config.input),
 		tea.WithOutput(config.output),
-		tea.WithAltScreen(),
 	)
 	result, err := program.Run()
 	if err != nil {

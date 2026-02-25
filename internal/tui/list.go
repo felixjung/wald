@@ -4,8 +4,8 @@ import (
 	"os"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // ListWorktree describes a worktree line item.
@@ -52,7 +52,7 @@ func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *listModel) View() string {
+func (m *listModel) View() tea.View {
 	sections := make([]string, 0, 2+len(m.projects)*3)
 	if m.title != "" {
 		sections = append(sections, m.theme.Title.Render(m.title))
@@ -83,7 +83,7 @@ func (m *listModel) View() string {
 
 	content := strings.Join(sections, "\n")
 	frame := lipgloss.NewStyle().Padding(1, 1)
-	return frame.Render(content)
+	return tea.NewView(frame.Render(content))
 }
 
 func renderWorktreeLine(theme *Theme, worktree ListWorktree) string {

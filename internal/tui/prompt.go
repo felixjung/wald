@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // ErrCanceled indicates the user canceled the prompt.
@@ -69,7 +69,6 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 			model,
 			tea.WithInput(config.input),
 			tea.WithOutput(config.output),
-			tea.WithAltScreen(),
 		)
 		result, err := program.Run()
 		if err != nil {
