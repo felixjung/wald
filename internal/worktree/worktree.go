@@ -16,9 +16,12 @@ type Runner interface {
 
 // Add creates a worktree at the given path, invoked from the default branch worktree.
 // extraArgs are forwarded to `git worktree add`.
-func Add(ctx context.Context, r Runner, gitDir, worktreePath, startPoint string, extraArgs []string) (string, error) {
+func Add(ctx context.Context, r Runner, gitDir, worktreePath, branch, startPoint string, extraArgs []string) (string, error) {
 	if strings.TrimSpace(worktreePath) == "" {
 		return "", errors.New("worktree path is required")
+	}
+	if strings.TrimSpace(startPoint) != "" && strings.TrimSpace(branch) == "" {
+		return "", errors.New("branch is required when start point is set")
 	}
 	if err := validateRepoRoot(gitDir); err != nil {
 		return "", err
@@ -28,6 +31,9 @@ func Add(ctx context.Context, r Runner, gitDir, worktreePath, startPoint string,
 		return "", err
 	}
 	args := append([]string{"worktree", "add"}, opts...)
+	if strings.TrimSpace(startPoint) != "" {
+		args = append(args, "-b", branch)
+	}
 	args = append(args, worktreePath)
 	if strings.TrimSpace(startPoint) != "" {
 		args = append(args, startPoint)

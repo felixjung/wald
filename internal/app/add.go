@@ -41,7 +41,7 @@ func (a *App) AddTarget(ctx context.Context, projectName, branch, startPoint str
 	if err != nil {
 		return "", fmt.Errorf("resolve worktree path: %w", err)
 	}
-	_, err = worktree.Add(ctx, a.deps.Runner, gitDir, relativePath, startPoint, extraArgs)
+	_, err = worktree.Add(ctx, a.deps.Runner, gitDir, relativePath, branch, startPoint, extraArgs)
 	if err != nil {
 		return "", err
 	}

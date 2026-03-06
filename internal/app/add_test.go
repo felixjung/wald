@@ -134,7 +134,7 @@ func TestAddTargetPassesStartPoint(t *testing.T) {
 		{
 			Dir:  gitDir,
 			Name: "git",
-			Args: []string{"worktree", "add", "../feature", "origin/feature/foo"},
+			Args: []string{"worktree", "add", "-b", "feature", "../feature", "origin/feature/foo"},
 		},
 	}, runner.calls)
 }
