@@ -28,7 +28,7 @@ func newInitCommand(deps Deps) *cli.Command {
 				}
 				fields, err := tui.Prompt("Initialize config", []tui.Field{
 					{ID: "root", Label: "Worktree root", Value: root, Required: true},
-				})
+				}, withThemeOptions(deps.ThemeOptions)...)
 				if err != nil {
 					if errors.Is(err, tui.ErrCanceled) {
 						return cli.Exit("prompt canceled", 1)

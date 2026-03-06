@@ -38,7 +38,7 @@ func newAddCommand(deps Deps) *cli.Command {
 					{ID: "name", Label: "Project name", Value: name, Required: true},
 					{ID: "repo", Label: "Repository", Value: repo, Required: true},
 					{ID: "workdir", Label: "Workdir", Placeholder: "relative path", Value: workdir, Default: "."},
-				})
+				}, withThemeOptions(deps.ThemeOptions)...)
 				if err != nil {
 					if errors.Is(err, tui.ErrCanceled) {
 						return cli.Exit("prompt canceled", 1)

@@ -35,6 +35,13 @@ func main() {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
+	themeProfile := resolveThemeProfile(cfg, os.Getenv, homeDir, os.Stderr)
+
 	application, err := app.New(app.Deps{Runner: runner.OSRunner{Stdout: quietOut, Stderr: quietErr}, Stdout: os.Stdout}, cfg)
 	if err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
@@ -47,7 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := newRootCommand(api)
+	cmd := newRootCommand(api, themeProfile)
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
@@ -57,7 +64,7 @@ func main() {
 
 func loadConfigIfNeeded(args []string) (*config.Config, error) {
 	command := firstNonFlagArg(args)
-	if command == "config" || command == "shell" || command == "" {
+	if command == "shell" || command == "" || isConfigInitCommand(args) {
 		return &config.Config{}, nil
 	}
 	homeDir, err := os.UserHomeDir()
@@ -72,16 +79,8 @@ func loadConfigIfNeeded(args []string) (*config.Config, error) {
 }
 
 func firstNonFlagArg(args []string) string {
-	for _, arg := range args {
-		if arg == "--" {
-			return ""
-		}
-		if arg == "" || arg[0] == '-' {
-			continue
-		}
-		return arg
-	}
-	return ""
+	first, _ := firstTwoNonFlagArgs(args)
+	return first
 }
 
 func hasVerboseFlag(args []string) bool {

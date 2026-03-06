@@ -17,12 +17,20 @@ type fieldModel struct {
 	canceled       bool
 	width          int
 	theme          *Theme
+	themeProfile   *ThemeProfile
+	isDarkBG       bool
 	defaultValue   string
 	displayDefault string
 	showDefault    bool
 }
 
-func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
+func newFieldModel(
+	title string,
+	field Field,
+	theme *Theme,
+	themeProfile *ThemeProfile,
+	isDarkBG bool,
+) *fieldModel {
 	input := textinput.New()
 	input.Prompt = "> "
 	input.Placeholder = field.Placeholder
@@ -47,6 +55,8 @@ func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
 		input:          input,
 		width:          80,
 		theme:          theme,
+		themeProfile:   themeProfile,
+		isDarkBG:       isDarkBG,
 		defaultValue:   defaultValue,
 		displayDefault: displayDefault,
 		showDefault:    showDefault,
@@ -56,7 +66,11 @@ func newFieldModel(title string, field Field, theme *Theme) *fieldModel {
 }
 
 func (m *fieldModel) Init() tea.Cmd {
-	return m.input.Focus()
+	commands := []tea.Cmd{m.input.Focus()}
+	if m.shouldTrackBackground() {
+		commands = append(commands, requestBackgroundColorCmd(), scheduleBackgroundPollCmd())
+	}
+	return tea.Batch(commands...)
 }
 
 func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -64,6 +78,12 @@ func (m *fieldModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.resizeInput()
+	case tea.BackgroundColorMsg:
+		m.updateThemeForBackground(msg.IsDark())
+	case backgroundPollMsg:
+		if m.shouldTrackBackground() {
+			return m, tea.Batch(requestBackgroundColorCmd(), scheduleBackgroundPollCmd())
+		}
 	case tea.KeyPressMsg:
 		if msg.String() != "enter" && msg.String() != "ctrl+c" && msg.String() != "esc" {
 			m.err = nil
@@ -148,4 +168,20 @@ func (m *fieldModel) applyStyles() {
 	styles.Blurred.Text = m.theme.Text
 	styles.Blurred.Placeholder = m.theme.Placeholder
 	m.input.SetStyles(styles)
+}
+
+func (m *fieldModel) shouldTrackBackground() bool {
+	return m.themeProfile != nil && m.themeProfile.IsAuto()
+}
+
+func (m *fieldModel) updateThemeForBackground(isDark bool) {
+	if !m.shouldTrackBackground() {
+		return
+	}
+	if m.isDarkBG == isDark {
+		return
+	}
+	m.isDarkBG = isDark
+	m.theme = m.themeProfile.Theme(isDark)
+	m.applyStyles()
 }

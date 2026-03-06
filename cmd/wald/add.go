@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func newAddCommand(app appAPI) *cli.Command {
+func newAddCommand(app appAPI, themeProfile tui.ThemeProfile) *cli.Command {
 	return &cli.Command{
 		Name:      "add",
 		Usage:     "Add a worktree for a project",
@@ -53,7 +53,7 @@ func newAddCommand(app appAPI) *cli.Command {
 				fields, err := tui.Prompt("Add worktree", []tui.Field{
 					{ID: "path", Label: "Worktree path", Value: path, Required: true},
 					{ID: "extra", Label: "Extra git args", Placeholder: "space-separated", Value: strings.Join(extraArgs, " ")},
-				})
+				}, tui.WithThemeProfile(themeProfile))
 				if err != nil {
 					if errors.Is(err, tui.ErrCanceled) {
 						return cli.Exit("prompt canceled", 1)

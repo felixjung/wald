@@ -106,11 +106,17 @@ func renderWorktreeLine(theme *Theme, worktree ListWorktree) string {
 
 // List renders a grouped worktree list using Bubble Tea.
 func List(title, root string, projects []ListProject, opts ...Option) error {
-	config := options{input: os.Stdin, output: os.Stdout, theme: DefaultTheme()}
+	defaultProfile := DefaultThemeProfile()
+	config := options{input: os.Stdin, output: os.Stdout, themeProfile: &defaultProfile}
 	for _, opt := range opts {
 		opt(&config)
 	}
-	model := newListModel(title, root, projects, config.theme)
+
+	initialDark := true
+	if dark, ok := detectDarkBackground(config.input, config.output); ok {
+		initialDark = dark
+	}
+	model := newListModel(title, root, projects, resolveTheme(config, initialDark))
 	program := tea.NewProgram(model, tea.WithInput(config.input), tea.WithOutput(config.output))
 	_, err := program.Run()
 	return err

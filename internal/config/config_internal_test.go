@@ -87,10 +87,76 @@ repo = "github.com/felixjung/mono"
 
 	cfg, err := loadFromPath(cfgPath, "/home/test")
 	require.NoError(t, err)
+	require.Nil(t, cfg.Theme)
 	require.Nil(t, cfg.Hooks)
 	require.Equal(t, defaultWorkdir, cfg.Projects[0].Workdir)
 	require.Equal(t, defaultBranch, cfg.Projects[0].DefaultBranch)
 	require.Nil(t, cfg.Projects[0].Hooks)
+}
+
+func TestLoadFromPathThemeDefaultsMode(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[theme]
+light = "solarized.day"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	cfg, err := loadFromPath(cfgPath, "/home/test")
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Theme)
+	require.Equal(t, "solarized.day", cfg.Theme.Light)
+	require.Empty(t, cfg.Theme.Dark)
+	require.Equal(t, ThemeModeAuto, cfg.Theme.Mode)
+}
+
+func TestLoadFromPathThemeNormalizesModeAndVariantRefs(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[theme]
+light = "  catppuccin.latte  "
+dark = "  catppuccin.macchiato  "
+mode = "  DARK  "
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	cfg, err := loadFromPath(cfgPath, "/home/test")
+	require.NoError(t, err)
+	require.NotNil(t, cfg.Theme)
+	require.Equal(t, "catppuccin.latte", cfg.Theme.Light)
+	require.Equal(t, "catppuccin.macchiato", cfg.Theme.Dark)
+	require.Equal(t, ThemeModeDark, cfg.Theme.Mode)
+}
+
+func TestLoadFromPathRejectsInvalidThemeMode(t *testing.T) {
+	temp := t.TempDir()
+	cfgPath := filepath.Join(temp, "config.toml")
+	content := `worktree_root = "/tmp"
+
+[theme]
+light = "solarized.day"
+mode = "night"
+
+[[projects]]
+name = "repo"
+repo = "github.com/felixjung/mono"
+`
+	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
+
+	_, err := loadFromPath(cfgPath, "/home/test")
+	require.EqualError(t, err, `theme mode must be one of "auto", "light", "dark"`)
 }
 
 func TestLoadFromPathWithGlobalHooks(t *testing.T) {

@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	isTerminal   = tui.IsTerminal
-	selectOption = tui.Select
-	promptFields = tui.Prompt
+	isTerminal         = tui.IsTerminal
+	selectOption       = tui.Select
+	promptFields       = tui.Prompt
+	switchThemeOptions []tui.Option
 )
 
 func newSwitchCommand(api appAPI) *cli.Command {
@@ -73,6 +74,17 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			return writeSwitchTarget(target)
 		},
 	}
+}
+
+func setSwitchThemeOptions(options ...tui.Option) {
+	switchThemeOptions = append([]tui.Option(nil), options...)
+}
+
+func withSwitchThemeOptions(options ...tui.Option) []tui.Option {
+	merged := make([]tui.Option, 0, len(switchThemeOptions)+len(options))
+	merged = append(merged, options...)
+	merged = append(merged, switchThemeOptions...)
+	return merged
 }
 
 func handleSwitchSelectionError(err error) error {
@@ -167,7 +179,12 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees, 
 		}
 		return "", app.ProjectWorktrees{}, errors.New("no initialized projects found")
 	}
-	selection, err := selectOption("Select project", "Type to filter projects...", projectOptions, tui.WithOutput(os.Stderr))
+	selection, err := selectOption(
+		"Select project",
+		"Type to filter projects...",
+		projectOptions,
+		withSwitchThemeOptions(tui.WithOutput(os.Stderr))...,
+	)
 	if err != nil {
 		return "", app.ProjectWorktrees{}, err
 	}
@@ -204,7 +221,7 @@ func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, c
 		}
 		fields, err := promptFields("Create and switch worktree", []tui.Field{
 			{ID: "worktree", Label: "Worktree path", Value: worktreeName, Required: true},
-		}, tui.WithOutput(os.Stderr))
+		}, withSwitchThemeOptions(tui.WithOutput(os.Stderr))...)
 		if err != nil {
 			return "", false, err
 		}
@@ -223,7 +240,12 @@ func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, c
 	}
 
 	title := fmt.Sprintf("Select worktree (%s)", group.Project.Name)
-	selection, err := selectOption(title, "Type to filter worktrees...", worktreeOptions, tui.WithOutput(os.Stderr))
+	selection, err := selectOption(
+		title,
+		"Type to filter worktrees...",
+		worktreeOptions,
+		withSwitchThemeOptions(tui.WithOutput(os.Stderr))...,
+	)
 	if err != nil {
 		return "", false, err
 	}

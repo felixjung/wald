@@ -6,6 +6,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // ErrCanceled indicates the user canceled the prompt.
@@ -23,9 +24,10 @@ type Field struct {
 }
 
 type options struct {
-	input  *os.File
-	output io.Writer
-	theme  *Theme
+	input        *os.File
+	output       io.Writer
+	theme        *Theme
+	themeProfile *ThemeProfile
 }
 
 // Option customizes prompt behavior.
@@ -35,6 +37,16 @@ type Option func(*options)
 func WithTheme(theme *Theme) Option {
 	return func(o *options) {
 		o.theme = theme
+		o.themeProfile = nil
+	}
+}
+
+// WithThemeProfile sets an adaptive theme profile.
+func WithThemeProfile(profile ThemeProfile) Option {
+	return func(o *options) {
+		copied := profile
+		o.themeProfile = &copied
+		o.theme = nil
 	}
 }
 
@@ -54,7 +66,8 @@ func WithOutput(output io.Writer) Option {
 
 // Prompt displays interactive prompts, one field at a time, and returns updated fields.
 func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
-	config := options{input: os.Stdin, output: os.Stdout, theme: DefaultTheme()}
+	defaultProfile := DefaultThemeProfile()
+	config := options{input: os.Stdin, output: os.Stdout, themeProfile: &defaultProfile}
 	for _, opt := range opts {
 		opt(&config)
 	}
@@ -63,8 +76,19 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 		return fields, nil
 	}
 
+	initialDark := true
+	if dark, ok := detectDarkBackground(config.input, config.output); ok {
+		initialDark = dark
+	}
+
 	for i := range fields {
-		model := newFieldModel(title, fields[i], config.theme)
+		model := newFieldModel(
+			title,
+			fields[i],
+			resolveTheme(config, initialDark),
+			config.themeProfile,
+			initialDark,
+		)
 		program := tea.NewProgram(
 			model,
 			tea.WithInput(config.input),
@@ -85,6 +109,27 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 	}
 
 	return fields, nil
+}
+
+func resolveTheme(config options, isDark bool) *Theme {
+	if config.theme != nil {
+		return config.theme
+	}
+	if config.themeProfile != nil {
+		return config.themeProfile.Theme(isDark)
+	}
+	return DefaultTheme()
+}
+
+func detectDarkBackground(input *os.File, output io.Writer) (isDark, detected bool) {
+	outFile, ok := output.(*os.File)
+	if !ok || input == nil || outFile == nil {
+		return false, false
+	}
+	if !IsTerminal(input) || !IsTerminal(outFile) {
+		return false, false
+	}
+	return lipgloss.HasDarkBackground(input, outFile), true
 }
 
 // IsTerminal reports whether the given file descriptor is a terminal.

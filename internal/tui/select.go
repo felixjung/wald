@@ -34,35 +34,33 @@ func (i selectItem) FilterValue() string {
 }
 
 type selectModel struct {
-	list     list.Model
-	theme    *Theme
-	selected SelectOption
-	hasValue bool
-	canceled bool
-	width    int
+	list         list.Model
+	delegate     list.DefaultDelegate
+	theme        *Theme
+	themeProfile *ThemeProfile
+	isDarkBG     bool
+	selected     SelectOption
+	hasValue     bool
+	canceled     bool
+	width        int
 }
 
-func newSelectModel(title, placeholder string, choices []SelectOption, theme *Theme) *selectModel {
+func newSelectModel(
+	title, placeholder string,
+	choices []SelectOption,
+	theme *Theme,
+	themeProfile *ThemeProfile,
+	isDarkBG bool,
+) *selectModel {
 	items := make([]list.Item, 0, len(choices))
 	for _, choice := range choices {
 		items = append(items, selectItem{option: choice})
 	}
 
 	delegate := list.NewDefaultDelegate()
-	delegate.Styles.NormalTitle = theme.Text
-	delegate.Styles.SelectedTitle = theme.LabelFocused
-	delegate.Styles.NormalDesc = theme.Help
-	delegate.Styles.SelectedDesc = theme.Help
-	delegate.Styles.DimmedTitle = theme.Placeholder
-	delegate.Styles.DimmedDesc = theme.Placeholder
-	delegate.Styles.FilterMatch = theme.PromptFocused
 
 	listModel := list.New(items, delegate, 0, 0)
 	listModel.Title = title
-	listModel.Styles.Title = theme.Title
-	listModel.Styles.DefaultFilterCharacterMatch = theme.PromptFocused
-	listModel.Styles.HelpStyle = theme.Help
-	listModel.Styles.NoItems = theme.Help
 	listModel.SetFilteringEnabled(true)
 	listModel.SetShowStatusBar(false)
 	listModel.SetShowHelp(true)
@@ -70,27 +68,24 @@ func newSelectModel(title, placeholder string, choices []SelectOption, theme *Th
 	listModel.FilterInput.Prompt = "> "
 	listModel.FilterInput.Placeholder = placeholder
 
-	filterStyles := listModel.FilterInput.Styles()
-	filterStyles.Focused.Prompt = theme.PromptFocused
-	filterStyles.Focused.Text = theme.TextFocused
-	filterStyles.Focused.Placeholder = theme.Placeholder
-	filterStyles.Blurred.Prompt = theme.Prompt
-	filterStyles.Blurred.Text = theme.Text
-	filterStyles.Blurred.Placeholder = theme.Placeholder
-	listModel.FilterInput.SetStyles(filterStyles)
-	listModel.Styles.Filter = filterStyles
-
 	model := &selectModel{
-		list:  listModel,
-		theme: theme,
-		width: 80,
+		list:         listModel,
+		delegate:     delegate,
+		theme:        theme,
+		themeProfile: themeProfile,
+		isDarkBG:     isDarkBG,
+		width:        80,
 	}
+	model.applyTheme(theme)
 	model.resize()
 	return model
 }
 
 func (m *selectModel) Init() tea.Cmd {
-	return nil
+	if !m.shouldTrackBackground() {
+		return nil
+	}
+	return tea.Batch(requestBackgroundColorCmd(), scheduleBackgroundPollCmd())
 }
 
 func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -98,6 +93,12 @@ func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.resize()
+	case tea.BackgroundColorMsg:
+		m.updateThemeForBackground(msg.IsDark())
+	case backgroundPollMsg:
+		if m.shouldTrackBackground() {
+			return m, tea.Batch(requestBackgroundColorCmd(), scheduleBackgroundPollCmd())
+		}
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -136,7 +137,8 @@ func (m *selectModel) resize() {
 
 // Select shows a themed, filterable selector and returns the chosen option.
 func Select(title, placeholder string, choices []SelectOption, opts ...Option) (SelectOption, error) {
-	config := options{input: os.Stdin, output: os.Stdout, theme: DefaultTheme()}
+	defaultProfile := DefaultThemeProfile()
+	config := options{input: os.Stdin, output: os.Stdout, themeProfile: &defaultProfile}
 	for _, opt := range opts {
 		opt(&config)
 	}
@@ -145,7 +147,18 @@ func Select(title, placeholder string, choices []SelectOption, opts ...Option) (
 		return SelectOption{}, errors.New("selection options are required")
 	}
 
-	model := newSelectModel(title, placeholder, choices, config.theme)
+	initialDark := true
+	if dark, ok := detectDarkBackground(config.input, config.output); ok {
+		initialDark = dark
+	}
+	model := newSelectModel(
+		title,
+		placeholder,
+		choices,
+		resolveTheme(config, initialDark),
+		config.themeProfile,
+		initialDark,
+	)
 	program := tea.NewProgram(
 		model,
 		tea.WithInput(config.input),
@@ -166,4 +179,44 @@ func Select(title, placeholder string, choices []SelectOption, opts ...Option) (
 		return SelectOption{}, errors.New("no selection made")
 	}
 	return finalModel.selected, nil
+}
+
+func (m *selectModel) shouldTrackBackground() bool {
+	return m.themeProfile != nil && m.themeProfile.IsAuto()
+}
+
+func (m *selectModel) updateThemeForBackground(isDark bool) {
+	if !m.shouldTrackBackground() || m.isDarkBG == isDark {
+		return
+	}
+	m.isDarkBG = isDark
+	m.applyTheme(m.themeProfile.Theme(isDark))
+}
+
+func (m *selectModel) applyTheme(theme *Theme) {
+	m.theme = theme
+
+	m.delegate.Styles.NormalTitle = theme.Text
+	m.delegate.Styles.SelectedTitle = theme.LabelFocused
+	m.delegate.Styles.NormalDesc = theme.Help
+	m.delegate.Styles.SelectedDesc = theme.Help
+	m.delegate.Styles.DimmedTitle = theme.Placeholder
+	m.delegate.Styles.DimmedDesc = theme.Placeholder
+	m.delegate.Styles.FilterMatch = theme.PromptFocused
+	m.list.SetDelegate(m.delegate)
+
+	m.list.Styles.Title = theme.Title
+	m.list.Styles.DefaultFilterCharacterMatch = theme.PromptFocused
+	m.list.Styles.HelpStyle = theme.Help
+	m.list.Styles.NoItems = theme.Help
+
+	filterStyles := m.list.FilterInput.Styles()
+	filterStyles.Focused.Prompt = theme.PromptFocused
+	filterStyles.Focused.Text = theme.TextFocused
+	filterStyles.Focused.Placeholder = theme.Placeholder
+	filterStyles.Blurred.Prompt = theme.Prompt
+	filterStyles.Blurred.Text = theme.Text
+	filterStyles.Blurred.Placeholder = theme.Placeholder
+	m.list.FilterInput.SetStyles(filterStyles)
+	m.list.Styles.Filter = filterStyles
 }

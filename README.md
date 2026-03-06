@@ -126,6 +126,10 @@ Example `config.toml`:
 ```toml
 worktree_root = "~/worktrees"
 
+[theme]
+name = "default"  # optional, default "default"
+mode = "auto"     # optional, one of "auto", "light", "dark"
+
 [hooks.post-switch]
 01_set_title = "echo switched to {{project}}/{{worktree}}"
 
@@ -150,6 +154,52 @@ Notes:
 - `workdir` and `working-dir` overrides must be relative paths.
 - `config add` supports `name`, `repo`, and `workdir`; set `default_branch` or hooks by editing `config.toml`.
 - Hook commands run via `sh -c ...` in deterministic name order (sorted by hook key).
+- If `[theme]` is omitted, `wald` uses `name = "default"` and `mode = "auto"`.
+
+### Themes
+
+- Theme files are loaded from `$XDG_CONFIG_HOME/wald/themes/<name>.toml`.
+- When `XDG_CONFIG_HOME` is unset, the fallback location is `~/.config/wald/themes/<name>.toml`.
+- Theme files use TOML and must include `name`, plus both `[light]` and `[dark]` color sets.
+- Supported color values:
+  - `default` (terminal default color)
+  - ANSI names (`red`, `bright_blue`, etc.) or ANSI indexes (`0` to `255`)
+  - Hex colors (`#RGB` or `#RRGGBB`)
+
+Example theme file:
+
+```toml
+name = "solarized"
+description = "Solarized-inspired palette"
+
+[light]
+title = "default"
+label = "8"
+label_focused = "4"
+required = "1"
+prompt = "8"
+prompt_focused = "4"
+text = "default"
+text_focused = "default"
+placeholder = "8"
+help = "8"
+error = "1"
+
+[dark]
+title = "default"
+label = "8"
+label_focused = "12"
+required = "9"
+prompt = "8"
+prompt_focused = "12"
+text = "default"
+text_focused = "default"
+placeholder = "8"
+help = "8"
+error = "9"
+```
+
+If a configured theme file is missing or invalid, `wald` prints a warning and falls back to the built-in `default` theme.
 
 ### Hook template variables
 

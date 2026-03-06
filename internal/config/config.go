@@ -20,8 +20,16 @@ const (
 // Config defines the wald configuration file schema.
 type Config struct {
 	WorktreeRoot string       `toml:"worktree_root"`
+	Theme        *ThemeConfig `toml:"theme,omitempty"`
 	Hooks        *GlobalHooks `toml:"hooks,omitempty"`
 	Projects     []Project    `toml:"projects"`
+}
+
+// ThemeConfig describes the selected TUI theme.
+type ThemeConfig struct {
+	Light string `toml:"light,omitempty"`
+	Dark  string `toml:"dark,omitempty"`
+	Mode  string `toml:"mode,omitempty"`
 }
 
 // GlobalHooks describes configurable shell hooks for global command lifecycle events.
@@ -98,6 +106,13 @@ func (c *Config) validate() error {
 	if strings.TrimSpace(c.WorktreeRoot) == "" {
 		return errors.New("config worktree_root is required")
 	}
+	if c.Theme != nil {
+		switch c.Theme.Mode {
+		case "", ThemeModeAuto, ThemeModeLight, ThemeModeDark:
+		default:
+			return fmt.Errorf("theme mode must be one of %q, %q, %q", ThemeModeAuto, ThemeModeLight, ThemeModeDark)
+		}
+	}
 	if c.Hooks != nil {
 		if err := validateHookCommands("global", "post-switch", c.Hooks.PostSwitch); err != nil {
 			return err
@@ -154,6 +169,14 @@ func (c *Config) normalize(homeDir string) error {
 		return err
 	}
 	c.WorktreeRoot = root
+	if c.Theme != nil {
+		c.Theme.Light = strings.TrimSpace(c.Theme.Light)
+		c.Theme.Dark = strings.TrimSpace(c.Theme.Dark)
+		c.Theme.Mode = strings.ToLower(strings.TrimSpace(c.Theme.Mode))
+		if c.Theme.Mode == "" {
+			c.Theme.Mode = ThemeModeAuto
+		}
+	}
 	if c.Hooks != nil {
 		c.Hooks.PostSwitch = trimHookCommands(c.Hooks.PostSwitch)
 	}

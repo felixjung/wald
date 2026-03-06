@@ -9,7 +9,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func newListCommand(api appAPI) *cli.Command {
+func newListCommand(api appAPI, themeProfile tui.ThemeProfile) *cli.Command {
 	return &cli.Command{
 		Name:  "list",
 		Usage: "List worktrees grouped by project",
@@ -29,7 +29,7 @@ func newListCommand(api appAPI) *cli.Command {
 				projects = append(projects, project)
 			}
 
-			return tui.List("Worktrees", root, projects)
+			return tui.List("Worktrees", root, projects, tui.WithThemeProfile(themeProfile))
 		},
 	}
 }
