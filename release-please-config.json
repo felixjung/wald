@@ -4,8 +4,7 @@
   "packages": {
     ".": {
       "release-type": "go",
-      "include-component-in-tag": false,
-      "skip-github-release": true
+      "include-component-in-tag": false
     }
   }
 }

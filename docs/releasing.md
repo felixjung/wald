@@ -13,18 +13,34 @@ This repository uses Conventional Commits, release-please, and GoReleaser.
 
 ## Required GitHub secrets
 
-- `HOMEBREW_TAP_GITHUB_TOKEN`: token with push access to `felixjung/homebrew-tap`.
-- Optional `RELEASE_PLEASE_TOKEN`: PAT with `contents` and `pull_requests` scopes.
-  If unset, workflows fall back to `GITHUB_TOKEN`.
+Use two separate fine-grained PATs. Do not fall back to `GITHUB_TOKEN`.
+
+- `RELEASE_PLEASE_TOKEN` (repository access: `felixjung/wald`):
+  - `Contents`: Read and write
+  - `Pull requests`: Read and write
+  - `Issues`: Read and write
+- `HOMEBREW_TAP_GITHUB_TOKEN` (repository access: `felixjung/homebrew-tap`):
+  - `Contents`: Read and write
 
 ## Automated flow
 
 1. Push commits to `main` using Conventional Commit messages.
-2. `.github/workflows/release.yml` runs release-please.
-3. release-please opens/updates a release PR that bumps versions and updates `CHANGELOG.md`.
-4. After the release PR is merged, release-please tags the release.
-5. The same workflow runs GoReleaser for that tag.
-6. GoReleaser publishes release artifacts and updates the Homebrew formula in `felixjung/homebrew-tap`.
+2. `.github/workflows/ci.yml` runs on the push.
+3. If CI succeeds, `.github/workflows/release.yml` runs and performs token preflight checks.
+4. release-please opens/updates a release PR that bumps versions and updates `CHANGELOG.md`.
+5. After the release PR is merged and CI succeeds on that merge commit, release-please creates the tag/release.
+6. The same release workflow runs GoReleaser for the new tag.
+7. GoReleaser publishes release artifacts and updates the Homebrew formula in `felixjung/homebrew-tap`.
+
+## Debug token setup
+
+Use `.github/workflows/release-permissions-debug.yml` (`workflow_dispatch`) to validate:
+
+- both required secrets are configured,
+- each token can authenticate to GitHub API,
+- `RELEASE_PLEASE_TOKEN` can access `felixjung/wald` with repository write access,
+- `RELEASE_PLEASE_TOKEN` can access pull request and issue endpoints in `felixjung/wald`,
+- `HOMEBREW_TAP_GITHUB_TOKEN` can access `felixjung/homebrew-tap` with repository write access.
 
 ## Local verification
 

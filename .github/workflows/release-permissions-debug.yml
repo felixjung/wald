@@ -1,34 +1,16 @@
-name: Release
+name: Release Permissions Debug
 
 on:
-  workflow_run:
-    workflows:
-      - CI
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
-concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  release:
-    if: >-
-      ${{
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'main'
-      }}
+  token-debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate tokens and repo permissions
+      - name: Validate token permissions
         env:
           RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
@@ -38,7 +20,7 @@ jobs:
           set -euo pipefail
 
           if ! command -v jq >/dev/null 2>&1; then
-            echo "::error::jq is required for token preflight checks."
+            echo "::error::jq is required for token debug checks."
             exit 1
           fi
 
@@ -51,7 +33,43 @@ jobs:
             if [[ -z "$value" ]]; then
               echo "::error::Missing required secret: $name."
               failures=$((failures + 1))
+            else
+              echo "::notice::${name} is set."
             fi
+          }
+
+          print_identity() {
+            local token="$1"
+            local label="$2"
+            local headers body http_code message login scopes
+
+            headers="$(mktemp)"
+            body="$(mktemp)"
+            http_code="$(curl -sS -D "$headers" -o "$body" -w "%{http_code}" \
+              -H "Authorization: Bearer ${token}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/user")"
+
+            if [[ "$http_code" != "200" ]]; then
+              message="$(jq -r '.message // "unknown error"' "$body" 2>/dev/null || true)"
+              if [[ -z "$message" || "$message" == "null" ]]; then
+                message="unknown error"
+              fi
+              echo "::error::${label} is invalid for GitHub API user lookup (HTTP ${http_code}): ${message}"
+              rm -f "$headers" "$body"
+              failures=$((failures + 1))
+              return
+            fi
+
+            login="$(jq -r '.login // "unknown"' "$body")"
+            scopes="$(awk -F': ' 'tolower($1)=="x-oauth-scopes"{print $2}' "$headers" | tr -d '\r')"
+            if [[ -z "$scopes" ]]; then
+              scopes="not exposed (expected for fine-grained PATs)"
+            fi
+
+            echo "::notice::${label} authenticates as ${login}."
+            echo "::notice::${label} x-oauth-scopes: ${scopes}."
+            rm -f "$headers" "$body"
           }
 
           check_repo_write_access() {
@@ -85,6 +103,7 @@ jobs:
               return
             fi
 
+            echo "::notice::${label} has repository write access to ${repo}."
             rm -f "$body"
           }
 
@@ -112,6 +131,7 @@ jobs:
               return
             fi
 
+            echo "::notice::${label} can access ${capability} endpoint."
             rm -f "$body"
           }
 
@@ -122,52 +142,17 @@ jobs:
             exit 1
           fi
 
+          print_identity "${RELEASE_PLEASE_TOKEN}" "RELEASE_PLEASE_TOKEN"
+          print_identity "${HOMEBREW_TAP_GITHUB_TOKEN}" "HOMEBREW_TAP_GITHUB_TOKEN"
+
           check_repo_write_access "${RELEASE_PLEASE_TOKEN}" "${RELEASE_REPO}" "RELEASE_PLEASE_TOKEN"
           check_endpoint_access "${RELEASE_PLEASE_TOKEN}" "repos/${RELEASE_REPO}/pulls?per_page=1" "RELEASE_PLEASE_TOKEN" "pull request"
           check_endpoint_access "${RELEASE_PLEASE_TOKEN}" "repos/${RELEASE_REPO}/issues?per_page=1" "RELEASE_PLEASE_TOKEN" "issue"
           check_repo_write_access "${HOMEBREW_TAP_GITHUB_TOKEN}" "${HOMEBREW_TAP_REPO}" "HOMEBREW_TAP_GITHUB_TOKEN"
 
           if (( failures > 0 )); then
-            echo "::error::Token preflight checks failed with ${failures} issue(s)."
+            echo "::error::Permission debug checks failed with ${failures} issue(s)."
             exit 1
           fi
 
-          echo "::notice::Token preflight checks passed."
-
-      - name: Run release-please
-        id: release
-        uses: googleapis/release-please-action@v4
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-      - name: Checkout repository
-        if: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.tag_name != '' }}
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Checkout release tag
-        if: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.tag_name != '' }}
-        run: |
-          git fetch --force --tags
-          git checkout "tags/${{ steps.release.outputs.tag_name }}"
-
-      - name: Set up Go
-        if: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.tag_name != '' }}
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run GoReleaser
-        if: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.tag_name != '' }}
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          echo "::notice::All permission debug checks passed."
