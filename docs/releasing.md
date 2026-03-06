@@ -32,16 +32,6 @@ Use two separate fine-grained PATs. Do not fall back to `GITHUB_TOKEN`.
 6. The same release workflow runs GoReleaser for the new tag.
 7. GoReleaser publishes release artifacts and updates the Homebrew formula in `felixjung/homebrew-tap`.
 
-## Debug token setup
-
-Use `.github/workflows/release-permissions-debug.yml` (`workflow_dispatch`) to validate:
-
-- both required secrets are configured,
-- each token can authenticate to GitHub API,
-- `RELEASE_PLEASE_TOKEN` can access `felixjung/wald` with repository write access,
-- `RELEASE_PLEASE_TOKEN` can access pull request and issue endpoints in `felixjung/wald`,
-- `HOMEBREW_TAP_GITHUB_TOKEN` can access `felixjung/homebrew-tap` with repository write access.
-
 ## Local verification
 
 - `make build` embeds local build metadata (`VERSION`, `COMMIT`, `DATE`).
