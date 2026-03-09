@@ -174,7 +174,7 @@ func TestResolveWorktreeSelectionMatchesFlag(t *testing.T) {
 		},
 	}
 
-	worktree, create, err := resolveWorktreeSelection(group, "feature/one", false)
+	worktree, create, err := resolveWorktreeSelection(group, "feature/one", false, "")
 	require.NoError(t, err)
 	require.Equal(t, filepath.FromSlash("feature/one"), worktree)
 	require.False(t, create)
@@ -190,7 +190,7 @@ func TestResolveWorktreeSelectionInvalidFlagWithoutTTY(t *testing.T) {
 		},
 	}
 
-	_, _, err := resolveWorktreeSelection(group, "missing", false)
+	_, _, err := resolveWorktreeSelection(group, "missing", false, "")
 	require.EqualError(t, err, `worktree "missing" not found in project "repo"`)
 }
 
@@ -208,7 +208,7 @@ func TestResolveWorktreeSelectionUsesSelectorWhenMissing(t *testing.T) {
 		},
 	}
 
-	worktree, create, err := resolveWorktreeSelection(group, "", false)
+	worktree, create, err := resolveWorktreeSelection(group, "", false, "")
 	require.NoError(t, err)
 	require.Equal(t, "feature", worktree)
 	require.False(t, create)
@@ -227,7 +227,7 @@ func TestResolveWorktreeSelectionPropagatesSelectorError(t *testing.T) {
 		},
 	}
 
-	_, _, err := resolveWorktreeSelection(group, "", false)
+	_, _, err := resolveWorktreeSelection(group, "", false, "")
 	require.EqualError(t, err, "select failed")
 }
 
@@ -240,7 +240,7 @@ func TestResolveWorktreeSelectionCreateUsesProvidedValueWhenMissing(t *testing.T
 		},
 	}
 
-	worktree, create, err := resolveWorktreeSelection(group, "feature/new", true)
+	worktree, create, err := resolveWorktreeSelection(group, "feature/new", true, "")
 	require.NoError(t, err)
 	require.Equal(t, "feature/new", worktree)
 	require.True(t, create)
@@ -259,7 +259,7 @@ func TestResolveWorktreeSelectionCreatePromptsWhenMissing(t *testing.T) {
 		},
 	}
 
-	worktree, create, err := resolveWorktreeSelection(group, "", true)
+	worktree, create, err := resolveWorktreeSelection(group, "", true, "")
 	require.NoError(t, err)
 	require.Equal(t, "feature/new", worktree)
 	require.True(t, create)
@@ -272,8 +272,49 @@ func TestResolveWorktreeSelectionCreateRequiresWorktreeWithoutTTY(t *testing.T) 
 		Root:    "/root/repo",
 	}
 
-	_, _, err := resolveWorktreeSelection(group, "", true)
+	_, _, err := resolveWorktreeSelection(group, "", true, "")
 	require.EqualError(t, err, "worktree is required")
+}
+
+func TestResolveWorktreeSelectionCreateInfersFromBaseWithoutTTY(t *testing.T) {
+	defer withSwitchTTY(false)()
+	group := app.ProjectWorktrees{
+		Project: config.Project{Name: "repo"},
+		Root:    "/root/repo",
+	}
+
+	worktree, create, err := resolveWorktreeSelection(group, "", true, "IDT-4313-change-set-candidate-2")
+	require.NoError(t, err)
+	require.Equal(t, "IDT-4313-change-set-candidate-2", worktree)
+	require.True(t, create)
+}
+
+func TestResolveWorktreeSelectionCreatePromptUsesBaseAsDefault(t *testing.T) {
+	defer withSwitchTTY(true)()
+	defer withSwitchPrompt(func(_ string, fields []tui.Field, _ ...tui.Option) ([]tui.Field, error) {
+		require.Len(t, fields, 1)
+		require.Equal(t, "feature/from-base", fields[0].Value)
+		return []tui.Field{{ID: "worktree", Value: "feature/from-base"}}, nil
+	})()
+
+	group := app.ProjectWorktrees{
+		Project: config.Project{Name: "repo"},
+		Root:    "/root/repo",
+	}
+
+	worktree, create, err := resolveWorktreeSelection(group, "", true, "origin/feature/from-base")
+	require.NoError(t, err)
+	require.Equal(t, "feature/from-base", worktree)
+	require.True(t, create)
+}
+
+func TestInferWorktreeFromBase(t *testing.T) {
+	require.Equal(t, "feature/foo", inferWorktreeFromBase("feature/foo"))
+	require.Equal(t, "feature/foo", inferWorktreeFromBase("origin/feature/foo"))
+	require.Equal(t, "feature/foo", inferWorktreeFromBase("refs/heads/feature/foo"))
+	require.Equal(t, "feature/foo", inferWorktreeFromBase("refs/remotes/origin/feature/foo"))
+	require.Equal(t, "feature/foo", inferWorktreeFromBase("remotes/origin/feature/foo"))
+	require.Empty(t, inferWorktreeFromBase("  "))
 }
 
 func TestWriteSwitchTargetToFile(t *testing.T) {

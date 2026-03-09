@@ -57,7 +57,7 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			if err != nil {
 				return handleSwitchSelectionError(err)
 			}
-			worktree, createWorktree, err := resolveWorktreeSelection(group, worktreeName, create)
+			worktree, createWorktree, err := resolveWorktreeSelection(group, worktreeName, create, startPoint)
 			if err != nil {
 				return handleSwitchSelectionError(err)
 			}
@@ -195,9 +195,9 @@ func resolveProjectSelection(projectName string, groups []app.ProjectWorktrees, 
 	return selection.ID, group, nil
 }
 
-func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, create bool) (selectedWorktree string, createWorktree bool, err error) {
+func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, create bool, startPoint string) (selectedWorktree string, createWorktree bool, err error) {
 	worktreeOptions := buildWorktreeOptions(group)
-	worktreeName = strings.TrimSpace(worktreeName)
+	worktreeName = inferWorktreeForCreate(worktreeName, create, startPoint)
 
 	if worktreeName != "" {
 		matched, ambiguous := matchWorktreeOption(worktreeOptions, worktreeName)
@@ -250,6 +250,38 @@ func resolveWorktreeSelection(group app.ProjectWorktrees, worktreeName string, c
 		return "", false, err
 	}
 	return selection.ID, false, nil
+}
+
+func inferWorktreeForCreate(worktreeName string, create bool, startPoint string) string {
+	worktreeName = strings.TrimSpace(worktreeName)
+	if worktreeName != "" || !create {
+		return worktreeName
+	}
+	return inferWorktreeFromBase(startPoint)
+}
+
+func inferWorktreeFromBase(startPoint string) string {
+	base := strings.TrimSpace(startPoint)
+	if base == "" {
+		return ""
+	}
+	base = strings.TrimPrefix(base, "refs/heads/")
+	if strings.HasPrefix(base, "refs/remotes/") {
+		base = strings.TrimPrefix(base, "refs/remotes/")
+		parts := strings.SplitN(base, "/", 2)
+		if len(parts) == 2 {
+			base = parts[1]
+		}
+	}
+	if strings.HasPrefix(base, "remotes/") {
+		base = strings.TrimPrefix(base, "remotes/")
+		parts := strings.SplitN(base, "/", 2)
+		if len(parts) == 2 {
+			base = parts[1]
+		}
+	}
+	base = strings.TrimPrefix(base, "origin/")
+	return strings.TrimSpace(base)
 }
 
 func findProjectGroup(groups []app.ProjectWorktrees, projectName string) (app.ProjectWorktrees, bool) {

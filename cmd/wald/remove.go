@@ -71,7 +71,7 @@ func resolveRemoveSelection(project, worktree string, groups []app.ProjectWorktr
 			return "", "", err
 		}
 
-		selectedWorktree, _, err = resolveWorktreeSelection(group, selectedWorktree, false)
+		selectedWorktree, _, err = resolveWorktreeSelection(group, selectedWorktree, false, "")
 		if err != nil {
 			return "", "", err
 		}

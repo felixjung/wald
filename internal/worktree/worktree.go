@@ -20,8 +20,14 @@ func Add(ctx context.Context, r Runner, gitDir, worktreePath, branch, startPoint
 	if strings.TrimSpace(worktreePath) == "" {
 		return "", errors.New("worktree path is required")
 	}
-	if strings.TrimSpace(startPoint) != "" && strings.TrimSpace(branch) == "" {
+	startPoint = strings.TrimSpace(startPoint)
+	branch = strings.TrimSpace(branch)
+	if startPoint != "" && branch == "" {
 		return "", errors.New("branch is required when start point is set")
+	}
+	if startPoint != "" && branch == normalizeBranchRef(startPoint) && localBranchExists(ctx, r, gitDir, branch) {
+		// Reuse existing branch instead of trying to recreate it with -b.
+		startPoint = ""
 	}
 	if err := validateRepoRoot(gitDir); err != nil {
 		return "", err
@@ -31,17 +37,46 @@ func Add(ctx context.Context, r Runner, gitDir, worktreePath, branch, startPoint
 		return "", err
 	}
 	args := append([]string{"worktree", "add"}, opts...)
-	if strings.TrimSpace(startPoint) != "" {
+	if startPoint != "" {
 		args = append(args, "-b", branch)
 	}
 	args = append(args, worktreePath)
-	if strings.TrimSpace(startPoint) != "" {
+	if startPoint != "" {
 		args = append(args, startPoint)
 	}
 	if err := r.Run(ctx, gitDir, "git", args...); err != nil {
 		return "", fmt.Errorf("add worktree: %w", err)
 	}
 	return worktreePath, nil
+}
+
+func localBranchExists(ctx context.Context, r Runner, gitDir, branch string) bool {
+	if strings.TrimSpace(branch) == "" {
+		return false
+	}
+	err := r.Run(ctx, gitDir, "git", "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+	return err == nil
+}
+
+func normalizeBranchRef(ref string) string {
+	ref = strings.TrimSpace(ref)
+	ref = strings.TrimPrefix(ref, "refs/heads/")
+	if strings.HasPrefix(ref, "refs/remotes/") {
+		ref = strings.TrimPrefix(ref, "refs/remotes/")
+		parts := strings.SplitN(ref, "/", 2)
+		if len(parts) == 2 {
+			ref = parts[1]
+		}
+	}
+	if strings.HasPrefix(ref, "remotes/") {
+		ref = strings.TrimPrefix(ref, "remotes/")
+		parts := strings.SplitN(ref, "/", 2)
+		if len(parts) == 2 {
+			ref = parts[1]
+		}
+	}
+	ref = strings.TrimPrefix(ref, "origin/")
+	return strings.TrimSpace(ref)
 }
 
 // Remove deletes a worktree at the given path.
