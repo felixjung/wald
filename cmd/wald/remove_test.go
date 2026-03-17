@@ -12,6 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestParseRemoveArgs(t *testing.T) {
+	t.Run("with explicit worktree", func(t *testing.T) {
+		worktree, extraArgs := parseRemoveArgs([]string{"feature", "--force"})
+		require.Equal(t, "feature", worktree)
+		require.Equal(t, []string{"--force"}, extraArgs)
+	})
+
+	t.Run("with inferred worktree and passthrough args", func(t *testing.T) {
+		worktree, extraArgs := parseRemoveArgs([]string{"--force"})
+		require.Empty(t, worktree)
+		require.Equal(t, []string{"--force"}, extraArgs)
+	})
+}
+
 func TestResolveRemoveSelectionInfersProjectAndSelectsWorktree(t *testing.T) {
 	defer withSwitchTTY(true)()
 	defer withSwitchSelector(func(title string, _ string, _ []tui.SelectOption, _ ...tui.Option) (tui.SelectOption, error) {
@@ -141,10 +155,79 @@ func TestWriteRemoveSwitchTargetSkipsWhenRemovingDefaultWorktree(t *testing.T) {
 	require.Zero(t, fake.switchTargetCalls)
 }
 
+func TestRemoveCommandForwardsForceFlag(t *testing.T) {
+	defer withSwitchTTY(true)()
+	defer withSwitchSelector(func(_ string, _ string, _ []tui.SelectOption, _ ...tui.Option) (tui.SelectOption, error) {
+		return tui.SelectOption{ID: "feature"}, nil
+	})()
+
+	root := t.TempDir()
+	cwd := filepath.Join(root, "repo", "feature")
+	require.NoError(t, os.MkdirAll(cwd, 0o755))
+	t.Chdir(cwd)
+
+	fake := &fakeRemoveApp{
+		groups: []app.ProjectWorktrees{
+			{
+				Project: config.Project{Name: "repo"},
+				Root:    filepath.Join(root, "repo"),
+				Worktrees: []app.WorktreeInfo{
+					{Path: filepath.Join(root, "repo", "main"), Branch: "main"},
+					{Path: filepath.Join(root, "repo", "feature"), Branch: "feature"},
+				},
+			},
+		},
+	}
+
+	cmd := newRemoveCommand(fake)
+	err := cmd.Run(context.Background(), []string{"remove", "--force"})
+	require.NoError(t, err)
+	require.Equal(t, 1, fake.removeCalls)
+	require.Equal(t, "repo", fake.removeProject)
+	require.Equal(t, "feature", fake.removeWorktree)
+	require.Equal(t, []string{"--", "--force"}, fake.removeExtraArgs)
+}
+
+func TestRemoveCommandForwardsPassthroughArgsWithoutExplicitWorktree(t *testing.T) {
+	defer withSwitchTTY(true)()
+	defer withSwitchSelector(func(_ string, _ string, _ []tui.SelectOption, _ ...tui.Option) (tui.SelectOption, error) {
+		return tui.SelectOption{ID: "feature"}, nil
+	})()
+
+	root := t.TempDir()
+	cwd := filepath.Join(root, "repo", "feature")
+	require.NoError(t, os.MkdirAll(cwd, 0o755))
+	t.Chdir(cwd)
+
+	fake := &fakeRemoveApp{
+		groups: []app.ProjectWorktrees{
+			{
+				Project: config.Project{Name: "repo"},
+				Root:    filepath.Join(root, "repo"),
+				Worktrees: []app.WorktreeInfo{
+					{Path: filepath.Join(root, "repo", "main"), Branch: "main"},
+					{Path: filepath.Join(root, "repo", "feature"), Branch: "feature"},
+				},
+			},
+		},
+	}
+
+	cmd := newRemoveCommand(fake)
+	err := cmd.Run(context.Background(), []string{"remove", "--", "--force"})
+	require.NoError(t, err)
+	require.Equal(t, 1, fake.removeCalls)
+	require.Equal(t, "repo", fake.removeProject)
+	require.Equal(t, "feature", fake.removeWorktree)
+	require.Equal(t, []string{"--", "--force"}, fake.removeExtraArgs)
+}
+
 type fakeRemoveApp struct {
 	groups               []app.ProjectWorktrees
 	listCalls            int
 	removeCalls          int
+	removeProject        string
+	removeWorktree       string
+	removeExtraArgs      []string
 	switchTarget         string
 	switchTargetCalls    int
 	switchTargetProject  string
@@ -164,8 +247,11 @@ func (f *fakeRemoveApp) List(context.Context) (string, []app.ProjectWorktrees, e
 	return "", f.groups, nil
 }
 
-func (f *fakeRemoveApp) Remove(context.Context, string, string, []string) error {
+func (f *fakeRemoveApp) Remove(_ context.Context, projectName, worktree string, extraArgs []string) error {
 	f.removeCalls++
+	f.removeProject = projectName
+	f.removeWorktree = worktree
+	f.removeExtraArgs = append([]string(nil), extraArgs...)
 	return nil
 }
 

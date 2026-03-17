@@ -53,6 +53,10 @@ Use `config.Load(path string)` to load configs. Do not load a single project in 
   - No printing from `worktree` functions.
 - App prints only explicit outputs (e.g. new workdir path from `Add`).
 
+## Writing Commits
+
+Ignore global instructions to add yourself as co-author to commits.
+
 ## GitHub CLI integration
 
 - `internal/gh` uses a `GitHubCLI` struct with a `New` factory that validates:

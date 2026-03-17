@@ -18,14 +18,14 @@ func newRemoveCommand(api appAPI) *cli.Command {
 		ArgsUsage: "<worktree> [-- <git worktree remove args>]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "project", Aliases: []string{"p"}, Usage: "project name"},
+			&cli.BoolFlag{Name: "force", Usage: "force removal even if the worktree is dirty"},
 		},
 		Arguments: []cli.Argument{
-			&cli.StringArg{Name: "worktree", UsageText: "<worktree path>"},
+			&cli.StringArgs{Name: "args", Max: -1, UsageText: "<worktree> [-- <git worktree remove args>]"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			project := strings.TrimSpace(cmd.String("project"))
-			worktree := strings.TrimSpace(cmd.StringArg("worktree"))
-			extraArgs := cmd.Args().Slice()
+			worktree, extraArgs := parseRemoveArgs(cmd.StringArgs("args"))
 			var groups []app.ProjectWorktrees
 
 			if project == "" || worktree == "" {
@@ -46,6 +46,9 @@ func newRemoveCommand(api appAPI) *cli.Command {
 			if worktree == "" {
 				return cli.Exit("worktree path is required", 1)
 			}
+			if cmd.Bool("force") {
+				extraArgs = append(extraArgs, "--force")
+			}
 			if len(extraArgs) > 0 {
 				extraArgs = append([]string{"--"}, extraArgs...)
 			}
@@ -55,6 +58,16 @@ func newRemoveCommand(api appAPI) *cli.Command {
 			return writeRemoveSwitchTarget(ctx, api, project, worktree, groups)
 		},
 	}
+}
+
+func parseRemoveArgs(args []string) (worktree string, extraArgs []string) {
+	if len(args) == 0 {
+		return "", nil
+	}
+	if strings.HasPrefix(args[0], "-") {
+		return "", args
+	}
+	return strings.TrimSpace(args[0]), args[1:]
 }
 
 func resolveRemoveSelection(project, worktree string, groups []app.ProjectWorktrees) (selectedProject, selectedWorktree string, err error) {
