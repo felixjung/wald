@@ -83,10 +83,10 @@ Ignore global instructions to add yourself as co-author to commits.
 - Keep functions small and focused; one command per file in `cmd/wald`.
 - Avoid exporting identifiers that are not used outside the package.
 
-## Pull Requests
+## Working with Git
 
+- When committing on `main` use conventional commits.
+- When committing on other branches use plain descriptions as commit messages.
 - Apply conventional commits to PR titles when opening PRs. We use
   squash-commits for merging PRs, and this ensures we have conventional commits on
   `main` after merging.
-- When committing on `main` use conventional commits.
-- When committing on other branches use plain descriptions as commit messages.
