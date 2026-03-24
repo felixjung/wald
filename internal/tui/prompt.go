@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -93,6 +94,7 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 			model,
 			tea.WithInput(config.input),
 			tea.WithOutput(config.output),
+			tea.WithEnvironment(bubbleTeaEnvironment()),
 		)
 		result, err := program.Run()
 		if err != nil {
@@ -109,6 +111,18 @@ func Prompt(title string, fields []Field, opts ...Option) ([]Field, error) {
 	}
 
 	return fields, nil
+}
+
+func bubbleTeaEnvironment() []string {
+	environ := slices.Clone(os.Environ())
+	for i, entry := range environ {
+		if len(entry) < len("SSH_TTY=") || entry[:len("SSH_TTY=")] != "SSH_TTY=" {
+			continue
+		}
+		environ[i] = "SSH_TTY=wald"
+		return environ
+	}
+	return append(environ, "SSH_TTY=wald")
 }
 
 func resolveTheme(config options, isDark bool) *Theme {

@@ -163,6 +163,7 @@ func Select(title, placeholder string, choices []SelectOption, opts ...Option) (
 		model,
 		tea.WithInput(config.input),
 		tea.WithOutput(config.output),
+		tea.WithEnvironment(bubbleTeaEnvironment()),
 	)
 	result, err := program.Run()
 	if err != nil {

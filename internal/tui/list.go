@@ -1,10 +1,11 @@
 package tui
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -23,67 +24,38 @@ type ListProject struct {
 	Worktrees []ListWorktree
 }
 
-type listModel struct {
-	title    string
-	root     string
-	projects []ListProject
-	theme    *Theme
-	width    int
-}
-
-func newListModel(title, root string, projects []ListProject, theme *Theme) *listModel {
-	return &listModel{
-		title:    title,
-		root:     root,
-		projects: projects,
-		theme:    theme,
-		width:    80,
+func renderListContent(title, root string, projects []ListProject, theme *Theme) string {
+	sections := make([]string, 0, 2+len(projects)*3)
+	if title != "" {
+		sections = append(sections, theme.Title.Render(title))
 	}
-}
-
-func (m *listModel) Init() tea.Cmd {
-	return tea.Quit
-}
-
-func (m *listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if windowSizeMsg, ok := msg.(tea.WindowSizeMsg); ok {
-		m.width = windowSizeMsg.Width
-	}
-	return m, nil
-}
-
-func (m *listModel) View() tea.View {
-	sections := make([]string, 0, 2+len(m.projects)*3)
-	if m.title != "" {
-		sections = append(sections, m.theme.Title.Render(m.title))
-	}
-	if m.root != "" {
-		sections = append(sections, m.theme.Help.Render(m.root))
+	if root != "" {
+		sections = append(sections, theme.Help.Render(root))
 	}
 
-	for i, project := range m.projects {
-		header := m.theme.Label.Render(project.Name)
+	for i, project := range projects {
+		header := theme.Label.Render(project.Name)
 		sections = append(sections, header)
 
 		switch {
 		case project.Missing:
-			sections = append(sections, "  "+m.theme.Error.Render("not initialized"))
+			sections = append(sections, "  "+theme.Error.Render("not initialized"))
 		case len(project.Worktrees) == 0:
-			sections = append(sections, "  "+m.theme.Help.Render("no worktrees"))
+			sections = append(sections, "  "+theme.Help.Render("no worktrees"))
 		default:
 			for _, worktree := range project.Worktrees {
-				sections = append(sections, renderWorktreeLine(m.theme, worktree))
+				sections = append(sections, renderWorktreeLine(theme, worktree))
 			}
 		}
 
-		if i < len(m.projects)-1 {
+		if i < len(projects)-1 {
 			sections = append(sections, "")
 		}
 	}
 
 	content := strings.Join(sections, "\n")
 	frame := lipgloss.NewStyle().Padding(1, 1)
-	return tea.NewView(frame.Render(content))
+	return frame.Render(content)
 }
 
 func renderWorktreeLine(theme *Theme, worktree ListWorktree) string {
@@ -112,12 +84,11 @@ func List(title, root string, projects []ListProject, opts ...Option) error {
 		opt(&config)
 	}
 
-	initialDark := true
-	if dark, ok := detectDarkBackground(config.input, config.output); ok {
-		initialDark = dark
+	theme := resolveTheme(config, true)
+	content := renderListContent(title, root, projects, theme)
+	_, err := io.WriteString(config.output, content)
+	if err != nil {
+		return fmt.Errorf("write list output: %w", err)
 	}
-	model := newListModel(title, root, projects, resolveTheme(config, initialDark))
-	program := tea.NewProgram(model, tea.WithInput(config.input), tea.WithOutput(config.output))
-	_, err := program.Run()
-	return err
+	return nil
 }
