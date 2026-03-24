@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/felixjung/wald/compare/v1.2.0...v1.2.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* support --force on worktree remove ([90d0389](https://github.com/felixjung/wald/commit/90d0389a34933952128aef439c5e2a7f4837cbe2))
+* suppress TUI terminal capability escapes ([b284b18](https://github.com/felixjung/wald/commit/b284b188ee7c7549bfd48103edec4e42ca82b7cb))
+
 ## [1.2.0](https://github.com/felixjung/wald/compare/v1.1.0...v1.2.0) (2026-03-09)
 
 
