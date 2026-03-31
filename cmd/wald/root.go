@@ -18,7 +18,7 @@ func newRootCommand(app appAPI, themeProfile tui.ThemeProfile) *cli.Command {
 		},
 		Commands: []*cli.Command{
 			newAddCommand(app, themeProfile),
-			newInitCommand(app),
+			newInitCommand(app, themeProfile),
 			newListCommand(app, themeProfile),
 			newRemoveCommand(app),
 			newSwitchCommand(app),

@@ -15,7 +15,7 @@ import (
 
 type appAPI interface {
 	AddTarget(ctx context.Context, projectName, branch, startPoint string, extraArgs []string) (string, error)
-	Init(ctx context.Context) error
+	Init(ctx context.Context, reporter app.InitProgressReporter) error
 	List(ctx context.Context) (string, []app.ProjectWorktrees, error)
 	Remove(ctx context.Context, projectName, branch string, extraArgs []string) error
 	SwitchTarget(ctx context.Context, projectName, worktree, workingDirOverride string) (string, error)

@@ -238,7 +238,7 @@ func (*fakeRemoveApp) AddTarget(context.Context, string, string, string, []strin
 	return "", nil
 }
 
-func (*fakeRemoveApp) Init(context.Context) error {
+func (*fakeRemoveApp) Init(context.Context, app.InitProgressReporter) error {
 	return nil
 }
 
