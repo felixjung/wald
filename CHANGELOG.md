@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/felixjung/wald/compare/v1.2.1...v1.3.0) (2026-03-31)
+
+
+### Features
+
+* add themed init progress task list ([061269d](https://github.com/felixjung/wald/commit/061269d9d0fcf139bd579b3c6357a6eef60c8710))
+
 ## [1.2.1](https://github.com/felixjung/wald/compare/v1.2.0...v1.2.1) (2026-03-24)
 
 
