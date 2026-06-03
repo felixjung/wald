@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/cliusage"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
@@ -19,6 +20,9 @@ func newInitCommand(application appAPI, themeProfile tui.ThemeProfile) *cli.Comm
 		Name:  "init",
 		Usage: "Initialize worktrees for configured projects",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if err := cliusage.ValidateNoArgs(cmd); err != nil {
+				return err
+			}
 			if shouldUseInitProgressTUI(cmd) {
 				return runInitWithTaskList(ctx, application, themeProfile)
 			}

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/felixjung/wald/internal/cliusage"
 	internalconfig "github.com/felixjung/wald/internal/config"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
@@ -21,6 +22,9 @@ func newInitCommand(deps Deps) *cli.Command {
 			&cli.StringFlag{Name: "worktree-root", Aliases: []string{"r"}, Usage: "root folder for worktrees"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if err := cliusage.ValidateNoArgs(cmd); err != nil {
+				return err
+			}
 			root := strings.TrimSpace(cmd.String("worktree-root"))
 			if root == "" {
 				if !tui.IsTerminal(os.Stdin) {

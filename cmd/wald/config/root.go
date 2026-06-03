@@ -1,9 +1,11 @@
 package config
 
 import (
+	"context"
 	"io"
 	"os"
 
+	"github.com/felixjung/wald/internal/cliusage"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
@@ -42,12 +44,29 @@ func NewCommand(deps Deps) *cli.Command {
 		deps.WriteFile = os.WriteFile
 	}
 
-	return &cli.Command{
+	return withUsageErrors(&cli.Command{
 		Name:  "config",
 		Usage: "Manage wald configuration",
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			return cliusage.ValidateNoArgs(cmd)
+		},
 		Commands: []*cli.Command{
 			newAddCommand(deps),
 			newInitCommand(deps),
 		},
+	})
+}
+
+func usageError(ctx context.Context, cmd *cli.Command, err error, _ bool) error {
+	return cliusage.Error(ctx, cmd, err)
+}
+
+func withUsageErrors(cmd *cli.Command) *cli.Command {
+	if cmd.OnUsageError == nil {
+		cmd.OnUsageError = usageError
 	}
+	for _, subcommand := range cmd.Commands {
+		withUsageErrors(subcommand)
+	}
+	return cmd
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/cliusage"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
@@ -36,6 +37,9 @@ func newSwitchCommand(api appAPI) *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if err := cliusage.ValidateNoArgs(cmd); err != nil {
+				return err
+			}
 			projectName := strings.TrimSpace(cmd.String("project"))
 			worktreeName := strings.TrimSpace(cmd.String("worktree"))
 			workingDirOverride := strings.TrimSpace(cmd.String("working-dir"))

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/cliusage"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
 )
@@ -13,7 +14,10 @@ func newListCommand(api appAPI, themeProfile tui.ThemeProfile) *cli.Command {
 	return &cli.Command{
 		Name:  "list",
 		Usage: "List worktrees grouped by project",
-		Action: func(ctx context.Context, _ *cli.Command) error {
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if err := cliusage.ValidateNoArgs(cmd); err != nil {
+				return err
+			}
 			root, groups, err := api.List(ctx)
 			if err != nil {
 				return err

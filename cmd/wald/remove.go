@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/felixjung/wald/internal/app"
+	"github.com/felixjung/wald/internal/cliusage"
 	"github.com/urfave/cli/v3"
 )
 
@@ -26,6 +27,9 @@ func newRemoveCommand(api appAPI) *cli.Command {
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			project := strings.TrimSpace(cmd.String("project"))
 			worktree, extraArgs := parseRemoveArgs(cmd.StringArgs("args"))
+			if err := validateRemoveExtraArgs(cmd, extraArgs); err != nil {
+				return err
+			}
 			var groups []app.ProjectWorktrees
 
 			if project == "" || worktree == "" {
@@ -68,6 +72,16 @@ func parseRemoveArgs(args []string) (worktree string, extraArgs []string) {
 		return "", args
 	}
 	return strings.TrimSpace(args[0]), args[1:]
+}
+
+func validateRemoveExtraArgs(cmd *cli.Command, extraArgs []string) error {
+	if len(extraArgs) == 0 {
+		return nil
+	}
+	if strings.HasPrefix(extraArgs[0], "-") {
+		return nil
+	}
+	return cliusage.UnexpectedArgument(cmd, extraArgs[0])
 }
 
 func resolveRemoveSelection(project, worktree string, groups []app.ProjectWorktrees) (selectedProject, selectedWorktree string, err error) {

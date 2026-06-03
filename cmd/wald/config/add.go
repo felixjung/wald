@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/felixjung/wald/internal/cliusage"
 	internalconfig "github.com/felixjung/wald/internal/config"
 	"github.com/felixjung/wald/internal/tui"
 	"github.com/urfave/cli/v3"
@@ -26,7 +27,11 @@ func newAddCommand(deps Deps) *cli.Command {
 			&cli.StringArg{Name: "name", UsageText: "<project name>"},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			name := strings.TrimSpace(cmd.StringArg("name"))
+			rawArgs := cmd.Args().Slice()
+			name := firstArgValue(rawArgs, cmd.StringArg("name"))
+			if err := validateNoExtraArgsAfterFirst(cmd, name); err != nil {
+				return err
+			}
 			repo := strings.TrimSpace(cmd.String("repo"))
 			workdir := strings.TrimSpace(cmd.String("workdir"))
 
@@ -99,4 +104,40 @@ func newAddCommand(deps Deps) *cli.Command {
 			return nil
 		},
 	}
+}
+
+func validateNoExtraArgsAfterFirst(cmd *cli.Command, first string) error {
+	args := argsAfterFirst(cmd.Args().Slice(), first)
+	if len(args) == 0 {
+		return nil
+	}
+	return cliusage.UnexpectedArgument(cmd, args[0])
+}
+
+func firstArgValue(args []string, value string) string {
+	value = strings.TrimSpace(value)
+	if value != "" || len(args) == 0 {
+		return value
+	}
+	if strings.HasPrefix(args[0], "-") {
+		return ""
+	}
+	return strings.TrimSpace(args[0])
+}
+
+func argsAfterFirst(args []string, first string) []string {
+	first = strings.TrimSpace(first)
+	if first == "" || len(args) == 0 {
+		if len(args) > 1 {
+			return args[1:]
+		}
+		return args
+	}
+	if strings.TrimSpace(args[0]) == first {
+		return args[1:]
+	}
+	if len(args) > 1 {
+		return args[1:]
+	}
+	return args
 }

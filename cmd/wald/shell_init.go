@@ -19,7 +19,11 @@ func newShellInitCommand() *cli.Command {
 			&cli.StringArg{Name: "shell", UsageText: "<fish|zsh|bash>"},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
-			shellName := strings.TrimSpace(cmd.StringArg("shell"))
+			rawArgs := cmd.Args().Slice()
+			shellName := firstArgValue(rawArgs, cmd.StringArg("shell"))
+			if err := validateNoExtraArgsAfterFirst(cmd, shellName); err != nil {
+				return err
+			}
 			if shellName == "" {
 				return cli.Exit("shell is required (fish|zsh|bash)", 1)
 			}
